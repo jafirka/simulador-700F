@@ -313,7 +313,7 @@ with tab_config:
 
         # 1. Leemos del "log" (session_state) para establecer el valor inicial
         distancia_eje = st.number_input(
-            "Coordenada vertical de la masa de desbalanceo (m)", 
+            "Coordenada horizontal de la masa de desbalanceo (m)", 
             value=float(st.session_state.configuracion_sistema.get("distancia_eje", 0.8)),
             step=0.01,
             format="%.2f"
@@ -333,7 +333,7 @@ with tab_config:
         # 3. Calculamos la excentricidad (Radio en metros)
         e_unbalance = (diametro_sel / 1000) / 2
 
-        # Determinar el plano del rotor en función del eje vertical
+        # Determinar el plano del rotor en función del eje horizontal
         if eje_horizontal == 'x':
             plano_rotor = ['y', 'z']
         elif eje_horizontal == 'y':
@@ -582,16 +582,37 @@ f_res_rpm, modos = modelo_base.calcular_frecuencias_naturales()
 
 # Ejes
 
-vertical = config_base["eje_horizontal"]
-horizontales = config_base["plano_rotor"]  # lista con los dos ejes del plano horizontal
+# --- Definición de Ejes según la Física del Sistema ---
+eje_axial = config_base["eje_horizontal"]  # El eje de giro (p.ej. 'x')
 
-# Colores y etiquetas
-colores = {horizontales[0]: "tab:blue", horizontales[1]: "tab:orange", vertical: "tab:green"}
-ejes_lbl = {horizontales[0]: horizontales[0].upper(),
-            horizontales[1]: horizontales[1].upper(),
-            vertical: vertical.upper()}
+# Definimos el plano de vibración (los dos ejes perpendiculares al giro)
+plano_vibracion = [e for e in ['x', 'y', 'z'] if e != eje_axial]
 
-ejes_lbl = {horizontales[0]: "Horizontal 1", horizontales[1]: "Horizontal 2", vertical: "Vertical"}
+# Identificamos Vertical y Horizontal en el plano de vibración
+# NOTA: Ajusta esto según cómo esté montada tu máquina físicamente.
+# Si los dampers están en el suelo (plano XZ), la vertical suele ser 'y'.
+# Si el eje es 'x', el plano es 'y' y 'z'.
+eje_vert_fisico = plano_vibracion[0] # Usualmente 'y' si el eje es 'x' o 'z'
+eje_horiz_fisico = plano_vibracion[1] # Usualmente 'z' o 'x'
+
+# --- Colores y etiquetas dinámicas ---
+colores = {
+    eje_horiz_fisico: "tab:blue", 
+    eje_vert_fisico: "tab:orange", 
+    eje_axial: "tab:green"
+}
+
+ejes_lbl = {
+    eje_horiz_fisico: f"Radial Horizontal ({eje_horiz_fisico.upper()})",
+    eje_vert_fisico: f"Radial Vertical ({eje_vert_fisico.upper()})",
+    eje_axial: f"Axial ({eje_axial.upper()})"
+}
+
+# Si prefieres nombres simplificados para la leyenda:
+# ejes_lbl = {eje_horiz_fisico: "Horizontal", eje_vert_fisico: "Vertical", eje_axial: "Axial"}
+
+# Orden para el bucle de graficación (Priorizamos radiales sobre axial)
+orden_grafico = [eje_vert_fisico, eje_horiz_fisico, eje_axial]
 
 # RPM de operación
 
@@ -690,76 +711,36 @@ st.pyplot(fig3)
 # ==========================
 st.subheader(f"Fuerzas Dinámicas en Damper {lista_dampers_config[d_idx]['tipo']}")
 fig4, ax4 = plt.subplots(figsize=(10, 5))
-for eje in [horizontales[0], horizontales[1], eje_horizontal]:
-    ax4.plot(rpm_range, D_fuerza[eje], color=colores[eje], label=f'{ejes_lbl[eje]}')
+
+# Usamos el orden lógico: Radial Vertical, Radial Horizontal y Axial
+for eje in orden_grafico:
+    ax4.plot(rpm_range, D_fuerza[eje], color=colores[eje], label=ejes_lbl[eje])
+
 ax4.axvline(rpm_obj, color='black', linestyle=':', label=f'RPM operación ({rpm_obj})')
 
-# Anotación de fuerza a RPM operación (usando el eje vertical)
-f_max_op = D_fuerza[eje_horizontal][idx_op]
+# --- CORRECCIÓN DE LA ANOTACIÓN ---
+# Usamos el eje vertical físico (donde realmente hay carga dinámica)
+eje_v = eje_vert_fisico 
+f_max_op = D_fuerza[eje_v][idx_op]
+
 ax4.annotate(
-    f'{f_max_op:.0f} N a {rpm_obj} RPM',
+    f'{f_max_op:.0f} N ({eje_v.upper()}) a {rpm_obj} RPM',
     xy=(rpm_range[idx_op], f_max_op),
-    xytext=(rpm_range[idx_op] * 0.7, f_max_op * 1.05),
-    arrowprops=dict(facecolor='black', shrink=0.05, width=1, headwidth=5)
+    # Ajustamos xytext para que no se solape con la línea de la curva
+    xytext=(rpm_range[idx_op] * 0.6, f_max_op * 1.15), 
+    arrowprops=dict(facecolor='black', shrink=0.05, width=1, headwidth=5),
+    fontsize=10,
+    fontweight='bold'
 )
+
 ax4.set_xlabel('Velocidad de Rotación [RPM]')
-ax4.set_ylabel('Fuerza [N]')
+ax4.set_ylabel('Fuerza Transmitida [N]')
 ax4.grid(True, alpha=0.1)
-ax4.legend()
-st.pyplot(fig4)
 
-# Inserta esto antes de una sección nueva que quieras que empiece en hoja limpia
-st.markdown('<div style="break-after:page"></div>', unsafe_allow_html=True)
-st.title("Simulador de variaciones de parametros")
-st.subheader("Comparativa de velocidad en el Sensor")
+# Colocamos la leyenda fuera del gráfico si hay muchas líneas
+ax4.legend(loc='upper right')
 
-fig, ax = plt.subplots(figsize=(10, 4))
-# --- CASO BASE (Líneas punteadas o grises) ---
-ax.plot(rpm_range, S_vel["x"], color="gray", linestyle="--", alpha=0.5, label="Base X")
-ax.plot(rpm_range, S_vel["y"], color="silver", linestyle="--", alpha=0.5, label="Base Y")
-ax.plot(rpm_range, S_vel["z"], color="black", linestyle="--", alpha=0.5, label="Base Z")
-# --- PROPUESTA (Colores vivos) ---
-ax.plot(rpm_range, S_vel_prop["x"], color="tab:blue", label="Propuesta X")
-ax.plot(rpm_range, S_vel_prop["y"], color="tab:orange", label="Propuesta Y")
-ax.plot(rpm_range, S_vel_prop["z"], color="tab:green", label="Propuesta Z")
-ax.axvline(rpm_obj, color='black', linestyle=':', label=f'RPM operación ({rpm_obj})')
-ax.set_xlabel("RPM")
-ax.set_ylabel("velocidad [mm/s]")
-ax.legend()
-ax.grid(True, alpha=0.1)
-st.pyplot(fig)
-
-st.subheader(f"Comparativa de fuerza vertical en el Damper {lista_dampers_config[d_idx]['tipo']}")
-
-fig, ax = plt.subplots(figsize=(10, 4))
-# --- CASO BASE (Líneas punteadas o grises) ---
-ax.plot(rpm_range, D_fuerza[vertical], color="gray", linestyle="--", alpha=0.5, label="Base X")
-# --- PROPUESTA (Colores vivos) ---
-ax.plot(rpm_range, fuerza_prop[vertical], color="tab:blue", label="Propuesta X")
-Fz_orig_1100 = D_fuerza[vertical][idx_op]
-Fz_prop_1100 = fuerza_prop[vertical][idx_op]
-# --- Anotaciones ---
-plt.annotate(
-    f'{Fz_prop_1100:.0f} N',
-    xy=(rpm_obj, Fz_prop_1100),
-    xytext=(rpm_obj+80, Fz_prop_1100*1.25),
-    arrowprops=dict(arrowstyle='->', color='blue'),
-    color='blue'
-)
-plt.annotate(
-    f'{Fz_orig_1100:.0f} N',
-    xy=(rpm_obj, Fz_orig_1100),
-    xytext=(rpm_obj+80, Fz_orig_1100*0.85),
-    arrowprops=dict(arrowstyle='->', color='gray'),
-    color='gray'
-)
-ax.axvline(rpm_obj, color='black', linestyle=':', label=f'RPM operación ({rpm_obj})')
-ax.set_xlabel("RPM")
-ax.set_ylabel("Fuerza [N]")
-ax.legend()
-ax.grid(True, alpha=0.1)
-st.pyplot(fig)
-
+st.pyplot(fig4))
 
 
 # ==========================================
