@@ -579,41 +579,6 @@ d_idx = int(seleccion.split(":")[0])
 modelo_base = SimuladorCentrifuga(config_base)
 
 f_res_rpm, modos = modelo_base.calcular_frecuencias_naturales()
-
-# Ejes
-
-# --- Definición de Ejes según la Física del Sistema ---
-eje_axial = config_base["eje_horizontal"]  # El eje de giro (p.ej. 'x')
-
-# Definimos el plano de vibración (los dos ejes perpendiculares al giro)
-plano_vibracion = [e for e in ['x', 'y', 'z'] if e != eje_axial]
-
-# Identificamos Vertical y Horizontal en el plano de vibración
-# NOTA: Ajusta esto según cómo esté montada tu máquina físicamente.
-# Si los dampers están en el suelo (plano XZ), la vertical suele ser 'y'.
-# Si el eje es 'x', el plano es 'y' y 'z'.
-eje_vert_fisico = plano_vibracion[0] # Usualmente 'y' si el eje es 'x' o 'z'
-eje_horiz_fisico = plano_vibracion[1] # Usualmente 'z' o 'x'
-
-# --- Colores y etiquetas dinámicas ---
-colores = {
-    eje_horiz_fisico: "tab:blue", 
-    eje_vert_fisico: "tab:orange", 
-    eje_axial: "tab:green"
-}
-
-ejes_lbl = {
-    eje_horiz_fisico: f"Radial Horizontal ({eje_horiz_fisico.upper()})",
-    eje_vert_fisico: f"Radial Vertical ({eje_vert_fisico.upper()})",
-    eje_axial: f"Axial ({eje_axial.upper()})"
-}
-
-# Si prefieres nombres simplificados para la leyenda:
-# ejes_lbl = {eje_horiz_fisico: "Horizontal", eje_vert_fisico: "Vertical", eje_axial: "Axial"}
-
-# Orden para el bucle de graficación (Priorizamos radiales sobre axial)
-orden_grafico = [eje_vert_fisico, eje_horiz_fisico, eje_axial]
-
 # RPM de operación
 
 rpm_range = np.linspace(10, rpm_obj*1.2, 1000)
@@ -649,6 +614,37 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
+
+# --- DEFINICIÓN DE EJES PARA GRÁFICOS (Pegar antes de los bucles for) ---
+eje_axial = config_base["eje_horizontal"]  # 'x', 'y' o 'z'
+
+# Definimos el plano de vibración radial (los dos ejes donde no está el eje de giro)
+plano_vibracion = [e for e in ['x', 'y', 'z'] if e != eje_axial]
+
+# Asignamos nombres físicos para las etiquetas
+eje_vert_fisico = plano_vibracion[0]  # P.ej: si eje es 'x', este es 'y'
+eje_horiz_fisico = plano_vibracion[1] # P.ej: si eje es 'x', este es 'z'
+
+# Creamos la lista para iterar en los gráficos
+orden_grafico = [eje_vert_fisico, eje_horiz_fisico, eje_axial]
+
+# Diccionario de etiquetas para las leyendas
+ejes_lbl = {
+    eje_vert_fisico: f"Radial Vertical ({eje_vert_fisico.upper()})",
+    eje_horiz_fisico: f"Radial Horizontal ({eje_horiz_fisico.upper()})",
+    eje_axial: f"Axial ({eje_axial.upper()})"
+}
+
+# Diccionario de colores
+colores = {
+    eje_vert_fisico: "tab:orange", 
+    eje_horiz_fisico: "tab:blue", 
+    eje_axial: "tab:green"
+}
+
+
+
+
 # ==========================
 # 📊 GRÁFICO 1: Aceleracion en el SENSOR
 # ==========================
@@ -674,7 +670,7 @@ st.pyplot(fig, clear_figure=True)
 # ==========================
 st.subheader("Respuesta en Frecuencia: Velocidad en Sensor")
 fig2, ax2 = plt.subplots(figsize=(10, 5))
-for eje in [horizontales[0], horizontales[1], eje_horizontal]:
+for eje in orden_grafico:
     ax2.plot(rpm_range, S_vel[eje], color=colores[eje], label=f'{ejes_lbl[eje]}')
 ax2.axvline(rpm_obj, color='black', linestyle=':', label=f'RPM operación ({rpm_obj})')
 for f in f_res_rpm:
@@ -696,7 +692,7 @@ st.subheader(f"Desplazamiento Amplitud en Damper {lista_dampers_config[d_idx]['t
 # 📊 GRÁFICO 3: Desplazamiento Damper
 # ==========================
 fig3, ax3 = plt.subplots(figsize=(10, 5))
-for eje in [horizontales[0], horizontales[1], eje_horizontal]:
+for eje in orden_grafico:
     ax3.plot(rpm_range, D_desp[eje], color=colores[eje], label=f'{ejes_lbl[eje]}')
 
 ax3.axvline(rpm_obj, color='black', linestyle=':', label=f'RPM operación ({rpm_obj})')
