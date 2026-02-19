@@ -586,14 +586,12 @@ ejes_lbl = {horizontales[0]: horizontales[0].upper(),
 
 ejes_lbl = {horizontales[0]: "Horizontal 1", horizontales[1]: "Horizontal 2", vertical: "Vertical"}
 
-
 # RPM de operación
 
 rpm_range = np.linspace(10, rpm_obj*1.2, 1000)
 idx_op = np.argmin(np.abs(rpm_range - rpm_obj))
 
 rpm_range, D_desp, D_fuerza, acel_cg, vel_cg, S_desp, S_vel, S_acel = ejecutar_barrido_rpm(modelo_base, rpm_range, d_idx)
-rpm_range, desp_prop, fuerza_prop, acel_prop, vel_prop, S_desp_prop, S_vel_prop, S_acel_prop = ejecutar_barrido_rpm(modelo_prop, rpm_range, d_idx)
 
 # ==========================================
 # 📄 INTRODUCCIÓN Y MEMORIA DE CÁLCULO
