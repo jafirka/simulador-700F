@@ -767,11 +767,8 @@ st.header("Análisis de Seguridad y Vibraciones")
 
 # 1. Identificación de la Frecuencia Crítica (Resonancia)
 # Buscamos el pico máximo en el barrido de RPM
-idx_res_base = np.argmax(S_vel[vertical])
+idx_res_base = np.argmax(S_vel[eje_v])
 rpm_res_base = rpm_range[idx_res_base]
-
-idx_res_prop = np.argmax(S_vel_prop[vertical])
-rpm_res_prop = rpm_range[idx_res_prop]
 
 col_concl1, col_concl2 = st.columns(2)
 
@@ -800,11 +797,19 @@ with col_concl1:
 with col_concl2:
     st.write("### 📊 Cumplimiento de Norma (ISO 10816)")
     
-    # Extraemos los picos máximos de velocidad
+    # Extraemos el pico máximo considerando los tres ejes para ser conservadores
     v_max_base = max(max(S_vel["x"]), max(S_vel["y"]), max(S_vel["z"]))
         
-    # Mostramos ambos valores para el reporte
-    st.write(f"**Velocidad Máx. Base:** {v_max_base:.2f} mm/s")
+    st.write(f"**Velocidad Máx. detectada:** {v_max_base:.2f} mm/s")
+    
+    # Opcional: Clasificación rápida
+    if v_max_base > 12.0:
+        st.warning("Zona C: Vibración insatisfactoria para operación continua.")
+    elif v_max_base > 8.0:
+        st.info("Zona B: Vibración aceptable.")
+    else:
+        st.success("Zona A: Vibración excelente.")
+
 
 # 2. Espacio para Observaciones del Ingeniero
 st.write("---")
