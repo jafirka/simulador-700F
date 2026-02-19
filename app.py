@@ -740,7 +740,7 @@ ax4.grid(True, alpha=0.1)
 # Colocamos la leyenda fuera del gráfico si hay muchas líneas
 ax4.legend(loc='upper right')
 
-st.pyplot(fig4))
+st.pyplot(fig4)
 
 
 # ==========================================
