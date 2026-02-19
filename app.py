@@ -568,12 +568,12 @@ d_idx = int(seleccion.split(":")[0])
 
 # --- 2. INTERFAZ PARA LA PROPUESTA (Sliders) ---
 st.sidebar.header("Variaciones de la Propuesta")
-esp_prop = st.sidebar.slider("Espesor Propuesta [mm]", 40.0, 140.0, 100.0) / 1000
+
 pos_x_motor_prop = st.sidebar.slider("Posición X Motor Propuesta [m]", 1.2, 1.8, 1.6)
 
 # --- 3. CREAR CONFIGURACIÓN DINÁMICA ---
 config_prop = copy.deepcopy(config_base)
-config_prop["placa"]["espesor"] = esp_prop
+
 config_prop["componentes"]["motor"]["pos"][0] = pos_x_motor_prop
 
 # --- 4. EJECUTAR AMBAS SIMULACIONES ---
@@ -683,26 +683,12 @@ with col_map2:
     st.write("**Distribución de Masas (Centro de Gravedad)**")
     # Calcular CG para mostrarlo
     M_sys, _, _, cg_final = modelo_base.armar_matrices()
-    esp_base_mm = config_base["placa"]["espesor"] * 1000  # Convertir a mm
     st.info(f"""
     **Centro de Gravedad Global (Base):**
     * X: {cg_final[0]:.3f} m
     * Y: {cg_final[1]:.3f} m
     * Z: {cg_final[2]:.3f} m
-    
-    *Espesor de placa base: {esp_base_mm:.1f} mm*
-    """)
 
-    # Calcular CG para mostrarlo
-    M_sys, _, _, cg_final = modelo_prop.armar_matrices()
-    esp_prop_mm = config_prop["placa"]["espesor"] * 1000  # Convertir a mm
-    st.info(f"""
-    **Centro de Gravedad Global (propuesto):**
-    * X: {cg_final[0]:.3f} m
-    * Y: {cg_final[1]:.3f} m
-    * Z: {cg_final[2]:.3f} m
-    
-    *Espesor de placa base: {esp_prop_mm:.1f} mm*
     """)
 
 st.markdown("""
