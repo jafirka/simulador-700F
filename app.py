@@ -272,7 +272,14 @@ if archivo_subido is not None:
                         st.session_state.componentes_data[nombre].update(data)            
             if "configuracion_sistema" in datos_preset:
                 st.session_state.configuracion_sistema.update(datos_preset["configuracion_sistema"])
+            # 3. ACTUALIZACIÓN DE DAMPERS (Lo que faltaba añadir)
+            if "dampers_prop_data" in datos_preset:
+                st.session_state.dampers_prop_data = datos_preset["dampers_prop_data"]
+            
+            if "dampers_pos_data" in datos_preset:
+                st.session_state.dampers_pos_data = datos_preset["dampers_pos_data"]
 
+            
             # Guardamos la marca de que este archivo ya se procesó
             st.session_state["last_loaded_file"] = file_id
             
