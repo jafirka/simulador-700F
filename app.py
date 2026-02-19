@@ -275,9 +275,14 @@ if archivo_subido is not None:
             # 3. ACTUALIZACIÓN DE DAMPERS (Lo que faltaba añadir)
             if "dampers_prop_data" in datos_preset:
                 st.session_state.dampers_prop_data = datos_preset["dampers_prop_data"]
+                # BORRAMOS LA KEY DEL EDITOR PARA FORZAR RECARGA
+                if "editor_tipos_nombres" in st.session_state:
+                    del st.session_state["editor_tipos_nombres"]
             
             if "dampers_pos_data" in datos_preset:
                 st.session_state.dampers_pos_data = datos_preset["dampers_pos_data"]
+                if "pos_dampers_editor_v2" in st.session_state:
+                    del st.session_state["pos_dampers_editor_v2"]
 
             
             # Guardamos la marca de que este archivo ya se procesó
@@ -430,8 +435,10 @@ with tab_dampers:
             "kz": st.column_config.NumberColumn("Kz [N/m]", format="%.1e"),
         }
     )
-    # Sincronizamos con el Log Maestro
-    st.session_state.dampers_prop_data = df_prop_editada
+    # SOLO actualizamos el session_state si el widget ha cambiado realmente
+    # Esto evita que el widget "pise" al JSON recién cargado
+    if st.session_state.get("editor_tipos_nombres"):
+        st.session_state.dampers_prop_data = df_prop_editada
 
     # Extraemos la lista de tipos para el desplegable de la siguiente tabla
     # Usamos list(set(...)) para evitar duplicados si el usuario se equivoca
