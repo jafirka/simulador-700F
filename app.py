@@ -566,24 +566,12 @@ seleccion = st.sidebar.selectbox("Selección de damper para diagnóstico:", opci
 d_idx = int(seleccion.split(":")[0])
 
 
-# --- 2. INTERFAZ PARA LA PROPUESTA (Sliders) ---
-st.sidebar.header("Variaciones de la Propuesta")
 
-pos_x_motor_prop = st.sidebar.slider("Posición X Motor Propuesta [m]", 1.2, 1.8, 1.6)
-
-# --- 3. CREAR CONFIGURACIÓN DINÁMICA ---
-config_prop = copy.deepcopy(config_base)
-
-config_prop["componentes"]["motor"]["pos"][0] = pos_x_motor_prop
 
 # --- 4. EJECUTAR AMBAS SIMULACIONES ---
 modelo_base = SimuladorCentrifuga(config_base)
-modelo_prop = SimuladorCentrifuga(config_prop)
-
 
 f_res_rpm, modos = modelo_base.calcular_frecuencias_naturales()
-f_res_rpm_prop, modos_prop = modelo_prop.calcular_frecuencias_naturales()
-
 
 # Ejes
 
@@ -660,17 +648,10 @@ with col_map1:
                        s=200, zorder=3, 
                        label='Analizado' if es_seleccionado else None)
         ax_map.text(d.pos[0]+0.1, d.pos[1]+0.1, f"D{i}", fontsize=12, fontweight='bold')
-
     # 3. Dibujar posición del MOTOR BASE (Gris/Referencia)
     pos_motor_base = config_base["componentes"]["motor"]["pos"]
     ax_map.scatter(pos_motor_base[0], pos_motor_base[1], 
                    marker='s', s=150, color='gray', alpha=0.5, label='Motor Base', zorder=4)
-
-    # 4. Dibujar posición del MOTOR PROPUESTA (Verde/Activo)
-    # Usamos el valor del slider directamente
-    ax_map.scatter(pos_x_motor_prop, 0, 
-            marker='s', s=180, color='green', edgecolors='black', label='Motor Propuesta', zorder=5)    
-
     ax_map.axhline(0, color='black', lw=1); ax_map.axvline(0, color='black', lw=1)
     ax_map.axvline(0, color='black', lw=0.8, ls='--')
     ax_map.set_xlim(-2, 2); ax_map.set_ylim(-2, 2)
