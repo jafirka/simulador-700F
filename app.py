@@ -780,7 +780,7 @@ with col_concl1:
 
     
     dist_min_base = abs(f_res_rpm[5] - rpm_obj)
-    if dist_min_base < 150 
+    if dist_min_base < 150:
         # Identificamos cuál falló para dar un mensaje preciso
         st.error(f"⚠️ PELIGRO: Resonancia crítica detectada. "
                  f"Margen insuficiente (< 150 RPM) respecto a {rpm_obj} RPM.")
