@@ -265,7 +265,7 @@ if archivo_subido is not None:
         try:
             datos_preset = json.load(archivo_subido)
             
-            # Actualizamos los componentes (bancada, motor, cesto)
+            # Actualizamos los componentes (bancada, cesto)
             if "componentes_data" in datos_preset:
                 for nombre, data in datos_preset["componentes_data"].items():
                     if nombre in st.session_state.componentes_data:
@@ -534,7 +534,7 @@ datos_a_exportar = {
         "diametro_cesto": st.session_state.configuracion_sistema["diametro_cesto"], 
         "sensor_pos": st.session_state.configuracion_sistema["sensor_pos"]
     },
-    # Los diccionarios de componentes (Bancada, Motor, Cesto)
+    # Los diccionarios de componentes (Bancada, Cesto)
     "componentes_data": st.session_state.componentes_data,
     
     # Las dos tablas de los Dampers (Propiedades y Ubicaciones)
