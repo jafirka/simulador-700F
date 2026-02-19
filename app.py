@@ -622,8 +622,8 @@ eje_axial = config_base["eje_horizontal"]  # 'x', 'y' o 'z'
 plano_vibracion = [e for e in ['x', 'y', 'z'] if e != eje_axial]
 
 # Asignamos nombres físicos para las etiquetas
-eje_vert_fisico = plano_vibracion[0]  # P.ej: si eje es 'x', este es 'y'
-eje_horiz_fisico = plano_vibracion[1] # P.ej: si eje es 'x', este es 'z'
+eje_vert_fisico = plano_vibracion[1]  # P.ej: si eje es 'x', este es 'y'
+eje_horiz_fisico = plano_vibracion[0] # P.ej: si eje es 'x', este es 'z'
 
 # Creamos la lista para iterar en los gráficos
 orden_grafico = [eje_vert_fisico, eje_horiz_fisico, eje_axial]
@@ -788,7 +788,7 @@ with col_concl1:
         st.success(f"✅ SEGURO: Todos los modos de ambos modelos mantienen un margen "
                    f"> 150 RPM respecto a la operación.")
         
-    st.caption(f"Margen actual: Base {dist_min_base:.0f} RPM )
+    st.caption(f"Margen actual: Base {dist_min_base:.0f} RPM")
 
 with col_concl2:
     st.write("### 📊 Cumplimiento de Norma (ISO 10816)")
