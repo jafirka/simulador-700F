@@ -772,58 +772,32 @@ with col_concl1:
     st.write("### 🚨 Puntos Críticos (Resonancia)")
     # Mostramos la primera frecuencia natural (Modo 1)
     st.write(f"**Caso Base (Modo 1):** {f_res_rpm[0]:.0f} RPM")
+    st.write(f"**Caso Base (Modo 2):** {f_res_rpm[0]:.0f} RPM")
+    st.write(f"**Caso Base (Modo 3):** {f_res_rpm[0]:.0f} RPM")
+    st.write(f"**Caso Base (Modo 4):** {f_res_rpm[0]:.0f} RPM")
+    st.write(f"**Caso Base (Modo 5):** {f_res_rpm[0]:.0f} RPM")
     st.write(f"**Caso Base (Modo 6):** {f_res_rpm[5]:.0f} RPM")
-    st.write(f"**Propuesta (Modo 1):** {f_res_rpm_prop[0]:.0f} RPM")
-    st.write(f"**Propuesta (Modo 6):** {f_res_rpm_prop[5]:.0f} RPM")
+
     
     dist_min_base = abs(f_res_rpm[5] - rpm_obj)
-    dist_min_prop = np.min(np.abs(f_res_rpm_prop[5] - rpm_obj))
-
-    if dist_min_base < 150 or dist_min_prop < 150:
+    if dist_min_base < 150 
         # Identificamos cuál falló para dar un mensaje preciso
-        fallo_en = "la Propuesta" if dist_min_prop < 150 else "el Caso Base"
-        if dist_min_base < 150 and dist_min_prop < 150:
-            fallo_en = "Ambos Modelos"
-            
-        st.error(f"⚠️ PELIGRO: Resonancia crítica detectada en {fallo_en}. "
+        st.error(f"⚠️ PELIGRO: Resonancia crítica detectada. "
                  f"Margen insuficiente (< 150 RPM) respecto a {rpm_obj} RPM.")
     else:
         st.success(f"✅ SEGURO: Todos los modos de ambos modelos mantienen un margen "
                    f"> 150 RPM respecto a la operación.")
         
-    st.caption(f"Margen actual: Base {dist_min_base:.0f} RPM | Propuesta {dist_min_prop:.0f} RPM")
+    st.caption(f"Margen actual: Base {dist_min_base:.0f} RPM )
 
 with col_concl2:
     st.write("### 📊 Cumplimiento de Norma (ISO 10816)")
     
     # Extraemos los picos máximos de velocidad
     v_max_base = max(max(S_vel["x"]), max(S_vel["y"]), max(S_vel["z"]))
-    v_max_prop = max(max(S_vel_prop["x"]), max(S_vel_prop["y"]), max(S_vel_prop["z"]))
         
     # Mostramos ambos valores para el reporte
     st.write(f"**Velocidad Máx. Base:** {v_max_base:.2f} mm/s")
-    st.write(f"**Velocidad Máx Propuesta:** {v_max_prop:.2f} mm/s")
-    
-    # Evaluación de severidad para la Propuesta
-    # Definimos los umbrales de la norma
-    if v_max_prop < 4.5:
-        st.success(f"**Clase A/B:** {v_max_prop:.2f} mm/s (Excelente/Satisfactorio)")
-        st.caption("La máquina puede operar de forma continua sin restricciones.")
-    elif v_max_prop < 11.2:
-        st.warning(f"**Clase C:** {v_max_prop:.2f} mm/s (Alerta/Insatisfactorio)")
-        st.caption("No apta para operación continua a largo plazo. Requiere mantenimiento.")
-    else:
-        st.error(f"**Clase D:** {v_max_prop:.2f} mm/s (Peligro)")
-        st.caption("Riesgo inminente de daño estructural. Detener operación.")
-
-    # Cálculo de la mejora real
-    mejora_vel = ((v_max_base - v_max_prop) / v_max_base) * 100
-    if mejora_vel > 0:
-        st.write(f"📈 Reducción de vibración: **{mejora_vel:.1f}%**")
-    else:
-        st.write(f"📉 Incremento de vibración: **{abs(mejora_vel):.1f}%**")
-
-
 
 # 2. Espacio para Observaciones del Ingeniero
 st.write("---")
