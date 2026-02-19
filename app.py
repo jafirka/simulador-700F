@@ -35,7 +35,7 @@ class Damper:
 class SimuladorCentrifuga:
     def __init__(self, config):
         self.pos_sensor = np.array(config["sensor"]["pos_sensor"])
-        self.eje_vertical = config['eje_vertical'].lower()
+        self.eje_horizontal = config['eje_horizontal'].lower()
         # --- Parámetros de la Placa ---
 
 
@@ -154,21 +154,35 @@ def ejecutar_barrido_rpm(modelo, rpm_range, d_idx):
     for rpm in rpm_range:
         w = rpm * 2 * np.pi / 60
         F0 = ex['m_unbalance'] * ex['e_unbalance'] * w**2
+        # 2. Inicialización del vector de excitación F (6 DOFs: Fx, Fy, Fz, Mx, My, Mz)
+        F = np.zeros(6, dtype=complex)
 
-        # Construcción del vector de excitación F (6 componentes)
-        if eje_vertical == 'x':
+        # 3. Lógica de excitación según el eje de rotación
+        if eje_horizontal == 'x':
+            # Plano de rotación Y-Z. Brazo axial en X.
             arm = dist - cg_global[0]
-            # Fuerza en Y y Z | Momento en Y (debido a Fz) y Momento en Z (debido a Fy)
-            F = np.array([0, F0, F0*1j, 0, -(F0*1j)*arm, F0*arm])
-        elif eje_vertical == 'y':
+            # Fuerzas en Y y Z (desfasadas 90°)
+            F[1], F[2] = F0, F0 * 1j
+            # Momentos: Mz debido a Fy, My debido a Fz
+            F[4], F[5] = -(F0 * 1j) * arm, F0 * arm
+            
+        elif eje_horizontal == 'y':
+            # Plano de rotación X-Z. Brazo axial en Y.
             arm = dist - cg_global[1]
-            # Fuerza en X y Z | Momento en X (debido a Fz) y Momento en Z (debido a Fx)
-            F = np.array([F0, 0, F0*1j, (F0*1j)*arm, 0, -F0*arm])
-            #F = np.array([F0*1j, 0, F0, (F0)*arm, 0, -(F0*1j)*arm])
-        else: # Eje Z
+            # Fuerzas en X y Z
+            F[0], F[2] = F0, F0 * 1j
+            # Momentos: Mz debido a Fx, Mx debido a Fz
+            F[3], F[5] = (F0 * 1j) * arm, -F0 * arm
+            
+        else: # Eje Z (Tu caso principal)
+            # Plano de rotación X-Y. Brazo axial en Z.
             arm = dist - cg_global[2]
-            # Fuerza en X y Y | Momento en X (debido a Fy) y Momento en Y (debido a Fx)
-            F = np.array([F0, F0*1j, 0, (F0*1j)*arm, -F0*arm, 0])
+            # Fuerzas en X e Y
+            F[0], F[1] = F0, F0 * 1j
+            # Momentos: My debido a Fx, Mx debido a Fy
+            # Mx = Fy * brazo | My = -Fx * brazo
+            F[3] = (F0 * 1j) * arm  # Momento en X
+            F[4] = -F0 * arm        # Momento en Y
 
         # Resolver el sistema: Z * X = F
         Z = -w**2 * M + 1j*w * C + K
@@ -210,7 +224,7 @@ if 'componentes_data' not in st.session_state:
 
 if 'configuracion_sistema' not in st.session_state:
     st.session_state.configuracion_sistema = {
-        "eje_vertical": "z",
+        "eje_horizontal": "z",
         "distancia_eje": 0.8,
         "sensor_pos": [0.0, 0.8, 0.0],
         "diametro_cesto": 1250  # Valor por defecto (mm)
@@ -286,9 +300,9 @@ with tab_config:
     
     with col_sys1:
         # --- Definir ejes de referencia ---
-        eje_vertical = st.selectbox(
+        eje_horizontal = st.selectbox(
             "Eje...", ('x','y','z'), 
-            index=('x','y','z').index(st.session_state.configuracion_sistema["eje_vertical"]))
+            index=('x','y','z').index(st.session_state.configuracion_sistema["eje_horizontal"]))
 
         # 1. Leemos del "log" (session_state) para establecer el valor inicial
         distancia_eje = st.number_input(
@@ -313,9 +327,9 @@ with tab_config:
         e_unbalance = (diametro_sel / 1000) / 2
 
         # Determinar el plano del rotor en función del eje vertical
-        if eje_vertical == 'x':
+        if eje_horizontal == 'x':
             plano_rotor = ['y', 'z']
-        elif eje_vertical == 'y':
+        elif eje_horizontal == 'y':
             plano_rotor = ['z', 'x']
         else: # 'z'
             plano_rotor = ['x', 'y']
@@ -339,7 +353,7 @@ with tab_config:
     st.divider()
 
 # Actualizamos los valores de sistema en el session_state con lo que hay actualmente en los widgets
-st.session_state.configuracion_sistema["eje_vertical"] = eje_vertical
+st.session_state.configuracion_sistema["eje_horizontal"] = eje_horizontal
 st.session_state.configuracion_sistema["distancia_eje"] = distancia_eje
 st.session_state.configuracion_sistema["sensor_pos"] = [sensor_x, sensor_y, sensor_z] 
 st.session_state.configuracion_sistema["diametro_cesto"] = diametro_sel
@@ -469,7 +483,7 @@ with tab_dampers:
 # aunque el usuario no abra una pestaña, el simulador use el último dato guardado.
 
 config_base = {
-    "eje_vertical": st.session_state.configuracion_sistema["eje_vertical"], 
+    "eje_horizontal": st.session_state.configuracion_sistema["eje_horizontal"], 
     "plano_rotor": plano_rotor, # Esta se calcula dinámicamente arriba del ensamblaje
     "excitacion": {
         "distancia_eje": st.session_state.configuracion_sistema["distancia_eje"], 
@@ -515,7 +529,7 @@ st.sidebar.header("💾 Gestión de Archivos")
 datos_a_exportar = {
     # Agrupamos todo lo referente a la física global del sistema
     "configuracion_sistema": {
-        "eje_vertical": st.session_state.configuracion_sistema["eje_vertical"],
+        "eje_horizontal": st.session_state.configuracion_sistema["eje_horizontal"],
         "distancia_eje": st.session_state.configuracion_sistema["distancia_eje"],
         "diametro_cesto": st.session_state.configuracion_sistema["diametro_cesto"], 
         "sensor_pos": st.session_state.configuracion_sistema["sensor_pos"]
@@ -573,7 +587,7 @@ f_res_rpm_prop, modos_prop = modelo_prop.calcular_frecuencias_naturales()
 
 # Ejes
 
-vertical = config_base["eje_vertical"]
+vertical = config_base["eje_horizontal"]
 horizontales = config_base["plano_rotor"]  # lista con los dos ejes del plano horizontal
 
 # Colores y etiquetas
@@ -605,17 +619,17 @@ st.markdown(f"""
 col_map1, col_map2 = st.columns([1, 1])
 
 with col_map1:
-    st.write(f"**Mapa de Ubicación (Plano perpendicular al eje {eje_vertical.upper()})**")
+    st.write(f"**Mapa de Ubicación (Plano perpendicular al eje {eje_horizontal.upper()})**")
     fig_map, ax_map = plt.subplots(figsize=(5, 5))
 
     # --- 1. Determinar qué ejes graficar según el eje vertical ---
     # Si vertical es Z -> Graficamos X e Y
     # Si vertical es Y -> Graficamos X e Z
     # Si vertical es X -> Graficamos Y e Z
-    if eje_vertical == 'z':
+    if eje_horizontal == 'z':
         idx_h, idx_v = 0, 1  # Horizontal=X, Vertical=Y
         label_h, label_v = "X [m]", "Y [m]"
-    elif eje_vertical == 'y':
+    elif eje_horizontal == 'y':
         idx_h, idx_v = 0, 2  # Horizontal=X, Vertical=Z
         label_h, label_v = "X [m]", "Z [m]"
     else: # 'x'
@@ -736,7 +750,7 @@ st.pyplot(fig, clear_figure=True)
 # ==========================
 st.subheader("Respuesta en Frecuencia: Velocidad en Sensor")
 fig2, ax2 = plt.subplots(figsize=(10, 5))
-for eje in [horizontales[0], horizontales[1], eje_vertical]:
+for eje in [horizontales[0], horizontales[1], eje_horizontal]:
     ax2.plot(rpm_range, S_vel[eje], color=colores[eje], label=f'{ejes_lbl[eje]}')
 ax2.axvline(rpm_obj, color='black', linestyle=':', label=f'RPM operación ({rpm_obj})')
 for f in f_res_rpm:
@@ -758,7 +772,7 @@ st.subheader(f"Desplazamiento Amplitud en Damper {lista_dampers_config[d_idx]['t
 # 📊 GRÁFICO 3: Desplazamiento Damper
 # ==========================
 fig3, ax3 = plt.subplots(figsize=(10, 5))
-for eje in [horizontales[0], horizontales[1], eje_vertical]:
+for eje in [horizontales[0], horizontales[1], eje_horizontal]:
     ax3.plot(rpm_range, D_desp[eje], color=colores[eje], label=f'{ejes_lbl[eje]}')
 
 ax3.axvline(rpm_obj, color='black', linestyle=':', label=f'RPM operación ({rpm_obj})')
@@ -773,12 +787,12 @@ st.pyplot(fig3)
 # ==========================
 st.subheader(f"Fuerzas Dinámicas en Damper {lista_dampers_config[d_idx]['tipo']}")
 fig4, ax4 = plt.subplots(figsize=(10, 5))
-for eje in [horizontales[0], horizontales[1], eje_vertical]:
+for eje in [horizontales[0], horizontales[1], eje_horizontal]:
     ax4.plot(rpm_range, D_fuerza[eje], color=colores[eje], label=f'{ejes_lbl[eje]}')
 ax4.axvline(rpm_obj, color='black', linestyle=':', label=f'RPM operación ({rpm_obj})')
 
 # Anotación de fuerza a RPM operación (usando el eje vertical)
-f_max_op = D_fuerza[eje_vertical][idx_op]
+f_max_op = D_fuerza[eje_horizontal][idx_op]
 ax4.annotate(
     f'{f_max_op:.0f} N a {rpm_obj} RPM',
     xy=(rpm_range[idx_op], f_max_op),
