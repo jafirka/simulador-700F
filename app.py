@@ -653,42 +653,46 @@ colores = {
 
 
 # ==========================
-# 📊 GRÁFICO 1: Aceleracion en el SENSOR
+# 📊 GRÁFICO 1: Aceleración en el SENSOR (CORREGIDO)
 # ==========================
-
-
 st.subheader("Análisis de Aceleración en el Sensor")
 fig, ax = plt.subplots(figsize=(10, 4))
-ax.plot(rpm_range, S_acel["x"], label="Horizontal X")
-ax.plot(rpm_range, S_acel["y"], label="Horizontal Y")
-ax.plot(rpm_range, S_acel["z"], label="Vertical Z")
+
+# Usamos el orden dinámico y las etiquetas mapeadas
+for eje in orden_grafico:
+    ax.plot(rpm_range, S_acel[eje], color=colores[eje], label=ejes_lbl[eje])
+
 ax.axvline(rpm_obj, color='black', linestyle=':', label=f'RPM operación ({rpm_obj})')
 ax.set_xlabel("RPM")
 ax.set_ylabel("Aceleración [g]")
 ax.grid(True, alpha=0.1)
 ax.legend()
-plt.rcParams.update({'font.size': 10}) # Fuente más legible para impresión
-fig.tight_layout() # Evita que las etiquetas se corten
+plt.rcParams.update({'font.size': 10}) 
+fig.tight_layout()
 st.pyplot(fig, clear_figure=True)
 
 
 # ==========================
-# 📊 GRÁFICO 2: Velocidad en el SENSOR
+# 📊 GRÁFICO 2: Velocidad en el SENSOR (REVISADO)
 # ==========================
 st.subheader("Respuesta en Frecuencia: Velocidad en Sensor")
 fig2, ax2 = plt.subplots(figsize=(10, 5))
 for eje in orden_grafico:
-    ax2.plot(rpm_range, S_vel[eje], color=colores[eje], label=f'{ejes_lbl[eje]}')
+    ax2.plot(rpm_range, S_vel[eje], color=colores[eje], label=ejes_lbl[eje])
+
 ax2.axvline(rpm_obj, color='black', linestyle=':', label=f'RPM operación ({rpm_obj})')
-for f in f_res_rpm:
-    if f < rpm_range[-1]: # Solo si está dentro del rango del gráfico
-        plt.axvline(f, color='red', linestyle='--', alpha=0.5, label='Resonancia Teórica' if f == f_res_rpm[0] else "")
+
+# Marcar resonancias teóricas
+for i, f in enumerate(f_res_rpm):
+    if f < rpm_range[-1]: 
+        ax2.axvline(f, color='red', linestyle='--', alpha=0.3, 
+                    label='Resonancia' if i == 0 else "") # Etiqueta solo una vez
+
 ax2.set_xlabel('Velocidad de Rotación [RPM]')
 ax2.set_ylabel('Velocidad [mm/s]')
 ax2.grid(True, alpha=0.1)
 ax2.legend()
 st.pyplot(fig2)
-
 
 # Inserta esto antes de una sección nueva que quieras que empiece en hoja limpia
 st.markdown('<div style="break-after:page"></div>', unsafe_allow_html=True)
