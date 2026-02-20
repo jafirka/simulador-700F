@@ -637,9 +637,9 @@ orden_grafico = [eje_vert_fisico, eje_horiz_fisico, eje_axial]
 
 # Diccionario de etiquetas para las leyendas
 ejes_lbl = {
-    eje_vert_fisico: f"Radial Vertical ({eje_vert_fisico.upper()})",
-    eje_horiz_fisico: f"Radial Horizontal ({eje_horiz_fisico.upper()})",
-    eje_axial: f"Axial ({eje_axial.upper()})"
+    eje_vert_fisico: f"({eje_vert_fisico.upper()})",
+    eje_horiz_fisico: f"({eje_horiz_fisico.upper()})",
+    eje_axial: f"({eje_axial.upper()})"
 }
 
 # Diccionario de colores
