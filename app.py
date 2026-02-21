@@ -106,8 +106,9 @@ class SimuladorCentrifuga:
 
         return M, K, C, cg_global
 
-    def calcular_frecuencias_naturales(self):
-      M, K, C, _ = self.armar_matrices()
+   def calcular_frecuencias_naturales(self):
+    # Todo este bloque debe tener la misma sangría inicial (4 espacios)
+    M, K, C, _ = self.armar_matrices()
 
     # Bloque 1: Expander de Debug
     with st.expander("DEBUG: Inspección de Matriz de Masa (M)"):
@@ -120,9 +121,8 @@ class SimuladorCentrifuga:
         if det_m <= 0:
             st.error("Error crítico: La matriz de masa M no es definida positiva (Determinante <= 0). Revisa las inercias de los componentes.")
 
-    # Bloque 2: Intento de calcular autovalores (Alineado con el 'with' anterior)
+    # Bloque 2: Verificación de salud de M (Alineado con el 'with')
     try:
-        # Verificamos la salud de M antes de usarla
         m_evals = np.linalg.eigvals(M)
         st.write("Autovalores de M:", m_evals)
         
@@ -131,23 +131,23 @@ class SimuladorCentrifuga:
     except Exception as e:
         st.write("Error calculando autovalores de M:", e)
 
-
-
-      # Resolvemos el problema de autovalores generalizado: K * v = lambda * M * v
-      # evals son los autovalores (w^2), evecs son los modos de vibración
-      evals, evecs = linalg.eigh(K, M)
+    # Cálculo del problema de autovalores generalizado
+    # K * v = λ * M * v
+    evals, evecs = linalg.eigh(K, M)
     
-      # evals pueden ser negativos muy pequeños por precisión numérica, los limpiamos
-      evals = np.maximum(evals, 0)
+    # Limpieza de valores por precisión numérica
+    evals = np.maximum(evals, 0)
     
-      # Frecuencias angulares (rad/s)
-      w_n = np.sqrt(evals)
+    # Frecuencias angulares (rad/s)
+    w_n = np.sqrt(evals)
     
-      # Convertir a Hz y a RPM
-      f_hz = w_n / (2 * np.pi)
-      f_rpm = f_hz * 60
+    # Convertir a Hz y a RPM
+    f_hz = w_n / (2 * np.pi)
+    f_rpm = f_hz * 60
 
-      return f_rpm, evecs
+    return f_rpm, evecs
+
+    
 
 # ==========================================
 # 2️⃣ LÓGICA DE CÁLCULO
