@@ -378,7 +378,7 @@ st.divider()
 
 # Contenedor para los datos procesados en los tabs
 comp_editados = {} 
- tab_config, tab_comp, tab_dampers, = st.tabs([ "⚙️ Configuración del Sistema", "📦 Componentes Masas/Inercias", "🛡️ Configuración de Dampers"])
+tab_config, tab_comp, tab_dampers, = st.tabs([ "⚙️ Configuración del Sistema", "📦 Componentes Masas/Inercias", "🛡️ Configuración de Dampers"])
 
 # 1️⃣ CONFIGURACION DE SISTEMA
 with tab_config:
