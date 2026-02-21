@@ -280,7 +280,7 @@ def calcular_reacciones_estaticas(modelo):
     
     return reacciones
 
-def calcular_tabla_fuerzas_realista(modelo, rpm_obj):
+def calcular_tabla_fuerzas(modelo, rpm_obj):
     M, K, C, cg_global = modelo.armar_matrices()
     m_total = sum(c["m"] for c in modelo.componentes.values())
     peso_total = m_total * 9.81  # Actúa en el eje vertical (Y)
