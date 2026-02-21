@@ -325,17 +325,6 @@ with col_img2:
     </div>
     """, unsafe_allow_html=True)
 
-Es normal que la segunda opción (la de matplotlib) sea más difícil de configurar, ya que requiere descargar la imagen a la memoria del servidor de Streamlit y procesarla antes de mostrarla. Además, si hay problemas de red en el servidor, puede fallar.
-
-Si buscas algo profesional, vamos a mejorar la primera opción (la de las columnas) para que los ejes se vean como una leyenda técnica integrada. Esto es mucho más estable y no fallará aunque cambies de servidor.
-
-Aquí tienes el código optimizado. He ajustado los colores de la leyenda para que coincidan con los colores estándar de ingeniería que usas en tus gráficos (Tab:Blue, Tab:Orange, Tab:Green):
-
-Python
-# --- SECCIÓN: REFERENCIA VISUAL ---
-st.header("🧱 Configuración del Sistema")
-
-url_imagen_github = "https://raw.githubusercontent.com/jafirka/simulador-700F/main/Centrifuga.png"
 
 # Usamos columnas para centrar y controlar el tamaño
 col_img1, col_img2, col_img3 = st.columns([1, 1.5, 1]) 
