@@ -121,7 +121,6 @@ class SimuladorCentrifuga:
 
         M[0:3, 0:3], M[3:6, 3:6] = np.eye(3) * m_total, I_global
 
-
         K, C = np.zeros((6, 6)), np.zeros((6, 6))
         K += np.eye(6) * 1e-6
         for damper in self.dampers:
@@ -133,7 +132,6 @@ class SimuladorCentrifuga:
         if m_total <= 0:
             st.error("❌ Error Crítico: La masa total es cero o negativa.")
         st.error(f"Masa total: {m_total:.2f} kg")
-
 
         # 2. Determinante de M (Corregido el error de sintaxis)
         det_M = np.linalg.det(M)
@@ -182,7 +180,6 @@ class SimuladorCentrifuga:
 # ==========================================
 # 2️⃣ LÓGICA DE CÁLCULO
 # ==========================================
-# [Aquí pegas la función ejecutar_barrido_rpm de los bloques 12 a 19] [cite: 12, 19]
 
 def ejecutar_barrido_rpm(modelo, rpm_range, d_idx):
 
@@ -209,37 +206,17 @@ def ejecutar_barrido_rpm(modelo, rpm_range, d_idx):
     for rpm in rpm_range:
         w = rpm * 2 * np.pi / 60
         F0 = ex['m_unbalance'] * ex['e_unbalance'] * w**2
+        
         # 2. Inicialización del vector de excitación F (6 DOFs: Fx, Fy, Fz, Mx, My, Mz)
         F = np.zeros(6, dtype=complex)
-        K_estabilizada = K * (1 + 0.02j)
-
-        # 3. Lógica de excitación según el eje de rotación
-        if eje_horizontal == 'x':
-            # Plano de rotación Y-Z. Brazo axial en X.
-            arm = dist - cg_global[0]
-            # Fuerzas en Y y Z (desfasadas 90°)
-            F[1], F[2] = F0, F0 * 1j
-            # Momentos: Mz debido a Fy, My debido a Fz
-            F[4], F[5] = -(F0 * 1j) * arm, F0 * arm
             
-        elif eje_horizontal == 'y':
-            # Plano de rotación X-Z. Brazo axial en Y.
-            arm = dist - cg_global[1]
-            # Fuerzas en X y Z
-            F[0], F[2] = F0, F0 * 1j
-            # Momentos: Mz debido a Fx, Mx debido a Fz
-            F[3], F[5] = (F0 * 1j) * arm, -F0 * arm
-            
-        else: # Eje Z (Tu caso principal)
-            # Plano de rotación X-Y. Brazo axial en Z.
-            arm = dist - cg_global[2]
-            # Fuerzas en X e Y
-            F[0], F[1] = F0, F0 * 1j
-            # Momentos: My debido a Fx, Mx debido a Fy
-            # Mx = Fy * brazo | My = -Fx * brazo
-            F[3] = (F0 * 1j) * arm  # Momento en X
-            F[4] = -F0 * arm        # Momento en Y
-
+        arm = dist - cg_global[2]
+        # Fuerzas en X e Y
+        F[0], F[1] = F0, F0 * 1j
+        # Momentos: My debido a Fx, Mx debido a Fy
+        # Mx = Fy * brazo | My = -Fx * brazo
+        F[3] = (F0 * 1j) * arm  # Momento en X
+        F[4] = -F0 * arm        # Momento en Y
 
         # Resolver el sistema: Z * X = F
         Z = -w**2 * M + 1j*w * C + K_estabilizada
@@ -248,12 +225,14 @@ def ejecutar_barrido_rpm(modelo, rpm_range, d_idx):
         for i, eje in enumerate(["x", "y", "z"]):
           acel_cg[eje].append((w**2) * np.abs(X[i])/9.81)
           vel_cg[eje].append(w * np.abs(X[i]) * 1000)
+
         # --- Damper: desplazamiento y fuerza ---
         X_damper = T_damper @ X
         for i, eje in enumerate(["x", "y", "z"]):
           D_desp[eje].append(np.abs(X_damper[i]) * 1000)
           f_comp = (ks[i] + 1j * w * cs[i]) * X_damper[i]
           D_fuerza[eje].append(np.abs(f_comp))
+
         # --- Sensor: desplazamiento y fuerza ---
         U_sensor = T_sensor @ X
         for i, eje in enumerate(["x", "y", "z"]):
@@ -281,7 +260,6 @@ if 'componentes_data' not in st.session_state:
 
 if 'configuracion_sistema' not in st.session_state:
     st.session_state.configuracion_sistema = {
-        "eje_horizontal": "z",
         "distancia_eje": 0.3,
         "sensor_pos": [0.0, 0.2, 0.0],
         "diametro_cesto": 1250  # Valor por defecto (mm)
@@ -398,26 +376,13 @@ with col_img2:
 
 st.divider()
 
-# En tu app de Streamlit:
-# st.pyplot(mostrar_con_coordenadas(url_imagen_github))
-
-st.divider()
-
 # Contenedor para los datos procesados en los tabs
 comp_editados = {} 
-tab_comp, tab_dampers, tab_config = st.tabs(["📦 Componentes Masas/Inercias", "🛡️ Configuración de Dampers", "⚙️ Configuración del Sistema"])
+ tab_config, tab_comp, tab_dampers, = st.tabs([ "⚙️ Configuración del Sistema", "📦 Componentes Masas/Inercias", "🛡️ Configuración de Dampers"])
 
 # 1️⃣ CONFIGURACION DE SISTEMA
 with tab_config:
     st.subheader("Configuración de Ejes y Convención")
-    col_sys1, col_sys2 = st.columns(2)
-    
-    with col_sys1:
-        # --- Definir ejes de referencia ---
-        eje_horizontal = st.selectbox(
-            "Eje...", ('x','y','z'), 
-            index=('x','y','z').index(st.session_state.configuracion_sistema["eje_horizontal"]))
-
         # 1. Leemos del "log" (session_state) para establecer el valor inicial
         distancia_eje = st.number_input(
             "Coordenada horizontal de la masa de desbalanceo (m)", 
@@ -440,13 +405,6 @@ with tab_config:
         # 3. Calculamos la excentricidad (Radio en metros)
         e_unbalance = (diametro_sel / 1000) / 2
 
-        # Determinar el plano del rotor en función del eje horizontal
-        if eje_horizontal == 'x':
-            plano_rotor = ['y', 'z']
-        elif eje_horizontal == 'y':
-            plano_rotor = ['z', 'x']
-        else: # 'z'
-            plano_rotor = ['x', 'y']
        
         # --- NUEVA SECCIÓN: POSICIÓN DEL SENSOR ---
         st.text("Posición del Sensor de velocidad/aceleracion(m)")
@@ -460,14 +418,9 @@ with tab_config:
         with col_s3:
             sensor_z = st.number_input("Z", value=float(sensor_actual[2]), step=0.1)
 
-    with col_sys2:
-        # Un resumen rápido de los valores globales para no tener que buscarlos en el sidebar
-        st.markdown(f"**Material:** Acero ($\rho$ = 7850 kg/m³)")
-
     st.divider()
 
 # Actualizamos los valores de sistema en el session_state con lo que hay actualmente en los widgets
-st.session_state.configuracion_sistema["eje_horizontal"] = eje_horizontal
 st.session_state.configuracion_sistema["distancia_eje"] = distancia_eje
 st.session_state.configuracion_sistema["sensor_pos"] = [sensor_x, sensor_y, sensor_z] 
 st.session_state.configuracion_sistema["diametro_cesto"] = diametro_sel
@@ -514,10 +467,6 @@ with tab_comp:
                 "pos": [px, py, pz], 
                 "I": df_iner_3x3.tolist() if isinstance(df_iner_3x3, np.ndarray) else df_iner_3x3
             }
-
-
-
-
 
 # 2️⃣ GESTIÓN DE DAMPERS
 with tab_dampers:
@@ -599,8 +548,6 @@ with tab_dampers:
 # aunque el usuario no abra una pestaña, el simulador use el último dato guardado.
 
 config_base = {
-    "eje_horizontal": st.session_state.configuracion_sistema["eje_horizontal"], 
-    "plano_rotor": plano_rotor, # Esta se calcula dinámicamente arriba del ensamblaje
     "excitacion": {
         "distancia_eje": st.session_state.configuracion_sistema["distancia_eje"], 
         "m_unbalance": m_unbalance, # Viene del slider de la sidebar
@@ -725,14 +672,9 @@ st.markdown("""
 
 
 # --- DEFINICIÓN DE EJES PARA GRÁFICOS (Pegar antes de los bucles for) ---
-eje_axial = config_base["eje_horizontal"]  # 'x', 'y' o 'z'
-
-# Definimos el plano de vibración radial (los dos ejes donde no está el eje de giro)
-plano_vibracion = [e for e in ['x', 'y', 'z'] if e != eje_axial]
-
-# Asignamos nombres físicos para las etiquetas
-eje_vert_fisico = plano_vibracion[1]  # P.ej: si eje es 'x', este es 'y'
-eje_horiz_fisico = plano_vibracion[0] # P.ej: si eje es 'x', este es 'z'
+eje_axial = "Z"
+eje_vert_fisico = "Y"  # P.ej: si eje es 'x', este es 'y'
+eje_horiz_fisico = "X" # P.ej: si eje es 'x', este es 'z'
 
 # Creamos la lista para iterar en los gráficos
 orden_grafico = [eje_vert_fisico, eje_horiz_fisico, eje_axial]
