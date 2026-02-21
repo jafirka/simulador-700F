@@ -4,38 +4,43 @@ from motor_fisico import *
 # 3️⃣ ENTORNO VISUAL (INTERFAZ)
 # ==========================================
 
-# --- INICIALIZADOR DE DATOS (Fuente de Verdad Única) ---
-if 'componentes_data' not in st.session_state:
-    st.session_state.componentes_data = {
-        "bancada": {"m": 10542.0, "pos": [0.00001, 0.0, 0.0], "I": [[9235.0, 1, 1], [1, 5690.0, 1], [1, 1, 3779.0]]},
-        "cesto": {"m": 980.0, "pos": [0.0, 0.0, 0.0], "I": [[178.0, 0, 0], [0, 392.0, 0], [0, 0, 312.0]]}
-    }
 
-if 'configuracion_sistema' not in st.session_state:
-    st.session_state.configuracion_sistema = {
-        "distancia_eje": 0.3,
-        "sensor_pos": [-0.4, 0.2, 0.0],
-        "diametro_cesto": 1250  # Valor por defecto (mm)
-    }
+    # --- INICIALIZADOR DE DATOS (Fuente de Verdad Única) ---
+    if 'componentes_data' not in st.session_state:
+        st.session_state.componentes_data = {
+            "bancada": {"m": 10542.0, "pos": [0.00001, 0.0, 0.0], "I": [[9235.0, 1, 1], [1, 5690.0, 1], [1, 1, 3779.0]]},
+            "cesto": {"m": 980.0, "pos": [0.0, 0.0, 0.0], "I": [[178.0, 0, 0], [0, 392.0, 0], [0, 0, 312.0]]}
+        }
 
-if 'dampers_prop_data' not in st.session_state:
-    st.session_state.dampers_prop_data = [
-        {"Tipo": "Ref_1", "kx": 1.5e6, "ky": 2.0e6, "kz": 1.5e6, "cx": 5.5e4, "cy": 5.5e4, "cz": 5e4},
-        {"Tipo": "Ref_2", "kx": 1.0e6,  "ky": 1.5e6,  "kz": 1.0e6, "cx": 5.5e4, "cy": 5.5e4, "cz": 5e4}
-    ]
+    if 'configuracion_sistema' not in st.session_state:
+        st.session_state.configuracion_sistema = {
+            "distancia_eje": 0.3,
+            "sensor_pos": [-0.4, 0.2, 0.0],
+            "diametro_cesto": 1250  # Valor por defecto (mm)
+        }
 
-if 'dampers_pos_data' not in st.session_state:
-    st.session_state.dampers_pos_data = [
-        {"Nombre": "D1 (Motor)", "X": -1.4, "Y": -0.4, "Z": -0.2, "Tipo": "Ref_1"},
-        {"Nombre": "D2 (Motor)", "X": 1.4, "Y":  -0.4, "Z": -0.2, "Tipo": "Ref_1"},
-        {"Nombre": "D3 (Front)", "X": -1.4, "Y": -0.4, "Z": -2.0, "Tipo": "Ref_2"},
-        {"Nombre": "D4 (Front)", "X": 1.4, "Y":  -0.4, "Z": -2.0, "Tipo": "Ref_2"},
-    ]
+    if 'dampers_prop_data' not in st.session_state:
+        st.session_state.dampers_prop_data = [
+            {"Tipo": "Ref_1", "kx": 1.5e6, "ky": 2.0e6, "kz": 1.5e6, "cx": 5.5e4, "cy": 5.5e4, "cz": 5e4},
+            {"Tipo": "Ref_2", "kx": 1.0e6,  "ky": 1.5e6,  "kz": 1.0e6, "cx": 5.5e4, "cy": 5.5e4, "cz": 5e4}
+        ]
+
+    if 'dampers_pos_data' not in st.session_state:
+        st.session_state.dampers_pos_data = [
+            {"Nombre": "D1 (Motor)", "X": -1.4, "Y": -0.4, "Z": -0.2, "Tipo": "Ref_1"},
+            {"Nombre": "D2 (Motor)", "X": 1.4, "Y":  -0.4, "Z": -0.2, "Tipo": "Ref_1"},
+            {"Nombre": "D3 (Front)", "X": -1.4, "Y": -0.4, "Z": -2.0, "Tipo": "Ref_2"},
+            {"Nombre": "D4 (Front)", "X": 1.4, "Y":  -0.4, "Z": -2.0, "Tipo": "Ref_2"},
+        ]
 
 
-# --- 3. INTERFAZ DE STREAMLIT ---
+# --- 1. INTERFAZ DE STREAMLIT ---
 st.set_page_config(layout="wide")
-st.title("Simulador Interactivo de Centrífuga 300F - Departamento de Ingenieria de Riera Nadeu")
+
+# Llamamos a nuestra nueva función
+inicializar_estado_del_simulador()
+
+st.title("Simulador Interactivo de Centrífuga 700F - Departamento de Ingenieria de Riera Nadeu")
 st.markdown("Modifica los valores en la barra lateral para ver el impacto en las vibraciones.")
 
 # --- BARRA LATERAL PARA MODIFICAR VALORES ---
