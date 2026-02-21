@@ -242,54 +242,119 @@ def ejecutar_barrido_rpm(modelo, rpm_range, d_idx):
     
     return rpm_range, D_desp, D_fuerza, acel_cg, vel_cg, S_desp, S_vel, S_acel
 
+def calcular_reacciones_estaticas(modelo):
+    """
+    Calcula la distribución real del peso en cada damper 
+    basado en su posición respecto al CG Global.
+    """
+    # 1. Obtener masa total y CG Global
+    m_total = sum(c["m"] for c in modelo.componentes.values())
+    W_total = m_total * 9.81
+    
+    # Necesitamos el CG global para las distancias (brazos de palanca)
+    _, _, _, cg_global = modelo.armar_matrices()
+    
+    # 2. Plantear sistema de ecuaciones:
+    # Suma de fuerzas Fz = 0
+    # Suma de momentos Mx = 0
+    # Suma de momentos My = 0
+    # Para sistemas con más de 3 apoyos (como el tuyo de 4), el sistema es hiperestático.
+    # Una aproximación robusta es usar la rigidez relativa (Kz) de cada damper.
+    
+    n_dampers = len(modelo.dampers)
+    A = np.zeros((3, n_dampers))
+    b = np.array([W_total, 0, 0])
+    
+    for i, d in enumerate(modelo.dampers):
+        # Brazos de palanca respecto al CG
+        rx = d.x - cg_global[0]
+        ry = d.y - cg_global[1]
+        
+        A[0, i] = 1          # Coeficiente para Fz
+        A[1, i] = ry         # Brazo para momento en X (Fz * distancia_y)
+        A[2, i] = -rx        # Brazo para momento en Y (Fz * distancia_x)
 
+    # Resolvemos usando la pseudoinversa (reparto basado en la proximidad geométrica)
+    # Esto equivale a suponer que todos los dampers tienen la misma rigidez vertical inicial.
+    reacciones = np.linalg.lstsq(A, b, rcond=None)[0]
+    
+    return reacciones
 
 def calcular_tabla_fuerzas(modelo, rpm_obj):
-    """Calcula las fuerzas estáticas y dinámicas para todos los dampers."""
+    """
+    Calcula las cargas estáticas y dinámicas individuales de cada damper
+    basándose en la posición real del CG y el equilibrio de momentos.
+    """
+    # 1. Obtener matrices y datos globales
     M, K, C, cg_global = modelo.armar_matrices()
     m_total = sum(c["m"] for c in modelo.componentes.values())
     peso_total = m_total * 9.81
     
-    # 1. Fuerza Estática (Simplificada: Peso total / número de dampers)
-    # Nota: Para un cálculo exacto se necesitaría resolver el equilibrio de momentos, 
-    # pero para 4 apoyos simétricos, P/n es una buena aproximación.
-    f_estatica_por_damper = peso_total / len(modelo.dampers)
-    
-    # 2. Fuerza Dinámica a RPM nominal
+    # --- CÁLCULO ESTÁTICO (Distribución de Peso) ---
+    n_d = len(modelo.dampers)
+    if n_d == 0:
+        return pd.DataFrame()
+
+    # Matriz de coeficientes para el equilibrio:
+    # Fila 0: Suma de fuerzas verticales (Fz) = Peso Total
+    # Fila 1: Suma de momentos en X (Mx) = 0
+    # Fila 2: Suma de momentos en Y (My) = 0
+    A = np.zeros((3, n_d))
+    b = np.array([peso_total, 0, 0])
+
+    for i, d in enumerate(modelo.dampers):
+        # Brazos de palanca desde el CG del sistema al damper
+        rx = d.pos[0] - cg_global[0]
+        ry = d.pos[1] - cg_global[1]
+        
+        A[0, i] = 1        # Coeficiente para sumatoria de fuerzas
+        A[1, i] = ry       # Momento Mx = Fz * ry
+        A[2, i] = -rx      # Momento My = -Fz * rx
+
+    # Resolvemos el sistema hiperestático para las reacciones verticales (Rz)
+    reacciones_estaticas = np.linalg.pinv(A) @ b
+
+    # --- CÁLCULO DINÁMICO (Vibración a RPM obj) ---
     w = rpm_obj * 2 * np.pi / 60
     ex = modelo.excitacion
-    F0 = ex['m_unbalance'] * ex['e_unbalance'] * w**2
+    F0 = ex['m_unbalance'] * ex['e_unbalance'] * (w**2)
     
-    # Vector de excitación
+    # Vector de excitación (6 DOFs)
     F = np.zeros(6, dtype=complex)
-    arm = ex['distancia_eje'] - cg_global[2]
+    arm_z = ex['distancia_eje'] - cg_global[2]
     F[0], F[1] = F0, F0 * 1j
-    F[3], F[4] = (F0 * 1j) * arm, -F0 * arm
-    
-    # Respuesta del sistema
+    F[3], F[4] = (F0 * 1j) * arm_z, -F0 * arm_z
+
+    # Impedancia y resolución
     Z = -w**2 * M + 1j*w * C + K
     X = linalg.solve(Z, F)
-    
+
+    # --- ENSAMBLAJE DE RESULTADOS ---
     resumen = []
-    for d in modelo.dampers:
+    for i, d in enumerate(modelo.dampers):
+        # Matriz de transferencia del damper para llevar el movimiento del CG al apoyo
         T_d = d.get_matriz_T(cg_global)
         X_d = T_d @ X
+        
+        # Fuerzas dinámicas: F = (K + iwC) * X_local
         ks = [d.kx, d.ky, d.kz]
         cs = [d.cx, d.cy, d.cz]
         
-        # Calculamos la fuerza dinámica total (módulo) en cada eje
-        f_dinamica_ejes = []
-        for i in range(3):
-            f_comp = (ks[i] + 1j * w * cs[i]) * X_d[i]
-            f_dinamica_ejes.append(np.abs(f_comp))
+        f_din = []
+        for j in range(3):
+            f_complex = (ks[j] + 1j * w * cs[j]) * X_d[j]
+            f_din.append(np.abs(f_complex))
             
-        resumen.append({
-            "Damper": d.nombre,
-            "F. Estática (Z) [N]": round(f_estatica_por_damper, 1),
-            "F. Dinámica X [N]": round(f_dinamica_ejes[0], 1),
-            "F. Dinámica Y [N]": round(f_dinamica_ejes[1], 1),
-            "F. Dinámica Z [N]": round(f_dinamica_ejes[2], 1),
-            "F. Total Máx (Z) [N]": round(f_estatica_por_damper + f_dinamica_ejes[2], 1)
-        })
+        f_est = reacciones_estaticas[i]
         
+        resumen.append({
+            "Identificador": d.nombre,
+            "Posición [x, y, z]": f"[{d.pos[0]:.2f}, {d.pos[1]:.2f}, {d.pos[2]:.2f}]",
+            "Carga Estática [N]": round(f_est, 1),
+            "Dinámica Radial Máx [N]": round(max(f_din[0], f_din[1]), 1),
+            "Dinámica Axial (Z) [N]": round(f_din[2], 1),
+            "Carga Máx (E+D) [N]": round(f_est + f_din[2], 1),
+            "Margen de Tracción [N]": round(f_est - f_din[2], 1)
+        })
+
     return pd.DataFrame(resumen)
