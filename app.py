@@ -110,9 +110,7 @@ class SimuladorCentrifuga:
         # Todo este bloque debe tener la misma sangría inicial (4 espacios)
         M, K, C, _ = self.armar_matrices()
 
-        for i in range(6):
-            if M[i, i] == 0:
-                M[i, i] = 1e-6  # Un valor muy pequeño para que no dé error pero no afecte la física
+
 
         # Bloque 1: Expander de Debug
         with st.expander("DEBUG: Inspección de Matriz de Masa (M)"):
@@ -134,6 +132,12 @@ class SimuladorCentrifuga:
                 st.error(f"M no es definida positiva. Autovalor mínimo: {np.min(m_evals)}")
         except Exception as e:
             st.write("Error calculando autovalores de M:", e)
+
+        cond = np.linalg.cond(M)
+        st.write(f"Número de condición de M: {cond:.2e}")
+        
+        diff_simetria = np.max(np.abs(M - M.T))
+        st.write(f"Desviación de simetría máxima: {diff_simetria}") 
 
         # Cálculo del problema de autovalores generalizado
         # K * v = λ * M * v
