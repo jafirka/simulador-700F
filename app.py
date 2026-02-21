@@ -383,40 +383,40 @@ tab_config, tab_comp, tab_dampers, = st.tabs([ "⚙️ Configuración del Sistem
 # 1️⃣ CONFIGURACION DE SISTEMA
 with tab_config:
     st.subheader("Configuración de Ejes y Convención")
-        # 1. Leemos del "log" (session_state) para establecer el valor inicial
-        distancia_eje = st.number_input(
-            "Coordenada horizontal de la masa de desbalanceo (m)", 
-            value=float(st.session_state.configuracion_sistema.get("distancia_eje", 0.8)),
-            step=0.01,
-            format="%.2f"
-        )
+    # 1. Leemos del "log" (session_state) para establecer el valor inicial
+    distancia_eje = st.number_input(
+        "Coordenada horizontal de la masa de desbalanceo (m)", 
+        value=float(st.session_state.configuracion_sistema.get("distancia_eje", 0.8)),
+        step=0.01,
+        format="%.2f"
+    )
 
-        # --- DENTRO DE tab_config ---
-        opciones_diametro = [800, 1000, 1250, 1400, 1600, 1800, 2000]
+    # --- DENTRO DE tab_config ---
+    opciones_diametro = [800, 1000, 1250, 1400, 1600, 1800, 2000]
 
-        # Simplificado: Calculamos el índice directamente en una línea
-        # Al no tener 'key', el selectbox obedecerá siempre al 'index' que viene del JSON
-        diametro_sel = st.selectbox(
-            "Tamaño de cesto (Diámetro en mm):", 
-            opciones_diametro, 
-            index=opciones_diametro.index(st.session_state.configuracion_sistema.get("diametro_cesto", 1250))
-        )
+    # Simplificado: Calculamos el índice directamente en una línea
+    # Al no tener 'key', el selectbox obedecerá siempre al 'index' que viene del JSON
+    diametro_sel = st.selectbox(
+        "Tamaño de cesto (Diámetro en mm):", 
+        opciones_diametro, 
+        index=opciones_diametro.index(st.session_state.configuracion_sistema.get("diametro_cesto", 1250))
+    )
 
-        # 3. Calculamos la excentricidad (Radio en metros)
-        e_unbalance = (diametro_sel / 1000) / 2
+    # 3. Calculamos la excentricidad (Radio en metros)
+    e_unbalance = (diametro_sel / 1000) / 2
 
        
-        # --- NUEVA SECCIÓN: POSICIÓN DEL SENSOR ---
-        st.text("Posición del Sensor de velocidad/aceleracion(m)")
-        col_s1, col_s2, col_s3 = st.columns(3)
+    # --- NUEVA SECCIÓN: POSICIÓN DEL SENSOR ---
+    st.text("Posición del Sensor de velocidad/aceleracion(m)")
+    col_s1, col_s2, col_s3 = st.columns(3)
 
-        sensor_actual = st.session_state.configuracion_sistema.get("sensor_pos", [0.0, 0.0, 0.0])
-        with col_s1:
-            sensor_x = st.number_input("X", value=float(sensor_actual[0]), step=0.1)
-        with col_s2:
-            sensor_y = st.number_input("Y", value=float(sensor_actual[1]), step=0.1)
-        with col_s3:
-            sensor_z = st.number_input("Z", value=float(sensor_actual[2]), step=0.1)
+    sensor_actual = st.session_state.configuracion_sistema.get("sensor_pos", [0.0, 0.0, 0.0])
+    with col_s1:
+        sensor_x = st.number_input("X", value=float(sensor_actual[0]), step=0.1)
+    with col_s2:
+        sensor_y = st.number_input("Y", value=float(sensor_actual[1]), step=0.1)
+    with col_s3:
+        sensor_z = st.number_input("Z", value=float(sensor_actual[2]), step=0.1)
 
     st.divider()
 
