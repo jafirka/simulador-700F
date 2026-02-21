@@ -501,118 +501,114 @@ with tab_dampers:
 
 
 def dibujar_modelo_2d(modelo):
-    # Obtener datos
+    # Obtener datos del modelo
     _, _, _, cg_global = modelo.armar_matrices()
     pos_sensor = modelo.pos_sensor
     ex = modelo.excitacion
     
-    # Crear subplots: 1 fila, 2 columnas
+    # Crear subplots
     fig = make_subplots(
         rows=1, cols=2,
         subplot_titles=("<b>Vista Frontal (X-Y)</b>", "<b>Vista de Planta (X-Z)</b>"),
         horizontal_spacing=0.15
     )
 
-    # Colores consistentes
-    col_cg = "purple"
-    col_comp = ["#1f77b4", "#ff7f0e"] # Azul para Bancada, Naranja para Cesto
-    col_damp = "cyan"
-    col_sens = "lime"
-    col_unb  = "red"
+    nombres_vistos = set()
 
-    # --- FUNCIÓN AUXILIAR PARA EVITAR REPETIR LEYENDAS ---
-    nombres_agregados = set()
-    def add_trace_unique(trace, row, col):
-        if trace.name not in nombres_agregados:
+    def agregar_traza(trace, row, col):
+        if trace.name not in nombres_vistos:
             trace.showlegend = True
-            nombres_agregados.add(trace.name)
+            nombres_vistos.add(trace.name)
         else:
             trace.showlegend = False
         fig.add_trace(trace, row=row, col=col)
 
-    # 1. CENTRO DE GRAVEDAD (CG)
-    for r, c, coord_z in [(1, 1, cg_global[1]), (1, 2, cg_global[2])]:
-        add_trace_unique(go.Scatter(
-            x=[cg_global[0]], y=[coord_z],
-            mode='markers', name='Centro de Gravedad (CG)',
-            marker=dict(symbol='x', size=12, color=col_cg, line=dict(width=2))
+    # --- 1. SOMBREADO GRIS ENTRE DAMPERS (Base de apoyo) ---
+    if len(modelo.dampers) >= 3:
+        # Extraemos coordenadas para el polígono en Vista de Planta (X-Z)
+        d_x = [d.pos[0] for d in modelo.dampers]
+        d_z = [d.pos[2] for d in modelo.dampers]
+        
+        # Para cerrar el polígono correctamente, Plotly requiere el primer punto al final
+        # Ordenamos los puntos de forma convexa o según su disposición para evitar cruces
+        from scipy.spatial import ConvexHull
+        puntos = np.column_stack((d_x, d_z))
+        hull = ConvexHull(puntos)
+        idx_orden = np.append(hull.vertices, hull.vertices[0])
+        
+        fig.add_trace(go.Scatter(
+            x=puntos[idx_orden, 0], y=puntos[idx_orden, 1],
+            fill="toself",
+            fillcolor="rgba(128, 128, 128, 0.2)", # Gris suave transparente
+            line=dict(color="rgba(128, 128, 128, 0.5)", width=1),
+            name="Área de Apoyo",
+            hoverinfo='skip'
+        ), row=1, col=2)
+
+    # --- 2. CENTRO DE GRAVEDAD GLOBAL (ÚNICO CG) ---
+    for r, c, y_val in [(1, 1, cg_global[1]), (1, 2, cg_global[2])]:
+        agregar_traza(go.Scatter(
+            x=[cg_global[0]], y=[y_val],
+            mode='markers', name='Centro de Gravedad (Global)',
+            marker=dict(symbol='x', size=14, color='purple', line=dict(width=2))
         ), r, c)
 
-    # 2. COMPONENTES (Bancada y Cesto)
-    for i, (nombre, comp) in enumerate(modelo.componentes.items()):
-        color = col_comp[i % len(col_comp)]
-        for r, c, coord_z in [(1, 1, comp['pos'][1]), (1, 2, comp['pos'][2])]:
-            add_trace_unique(go.Scatter(
-                x=[comp['pos'][0]], y=[coord_z],
-                mode='markers', name=f'Masa: {nombre.capitalize()}',
-                marker=dict(size=18, color=color, opacity=0.7)
-            ), r, c)
-
-    # 3. DAMPERS (Aisladores)
+    # --- 3. DAMPERS (Aisladores) ---
     for i, d in enumerate(modelo.dampers):
-        for r, c, coord_z in [(1, 1, d.pos[1]), (1, 2, d.pos[2])]:
-            add_trace_unique(go.Scatter(
-                x=[d.pos[0]], y=[coord_z],
+        for r, c, y_val in [(1, 1, d.pos[1]), (1, 2, d.pos[2])]:
+            agregar_traza(go.Scatter(
+                x=[d.pos[0]], y=[y_val],
                 mode='markers', name='Aisladores (Dampers)',
-                marker=dict(symbol='diamond', size=10, color=col_damp, line=dict(color='black', width=1))
+                marker=dict(symbol='diamond', size=10, color='cyan', line=dict(width=1, color='black'))
             ), r, c)
 
-    # 4. SENSOR
-    for r, c, coord_z in [(1, 1, pos_sensor[1]), (1, 2, pos_sensor[2])]:
-        add_trace_unique(go.Scatter(
-            x=[pos_sensor[0]], y=[coord_z],
+    # --- 4. SENSOR ---
+    for r, c, y_val in [(1, 1, pos_sensor[1]), (1, 2, pos_sensor[2])]:
+        agregar_traza(go.Scatter(
+            x=[pos_sensor[0]], y=[y_val],
             mode='markers', name='Sensor Velocidad',
-            marker=dict(symbol='star', size=15, color=col_sens, line=dict(color='black', width=1))
+            marker=dict(symbol='star', size=15, color='lime', line=dict(width=1, color='black'))
         ), r, c)
 
-    # 5. MASA DESBALANCEO (Solo en Vista de Planta X-Z)
+    # --- 5. MASA DESBALANCEO (Solo en Vista Planta X-Z) ---
     if ex['m_unbalance'] > 0:
         z_unb = ex['distancia_eje']
         e_unb = ex['e_unbalance']
-        # Línea de excentricidad
         fig.add_trace(go.Scatter(
             x=[0, e_unb], y=[z_unb, z_unb],
             mode='lines', name='Radio Desbalanceo',
-            line=dict(color=col_unb, width=2, dash='dash'),
-            showlegend=True
+            line=dict(color='red', width=2, dash='dash')
         ), row=1, col=2)
-        # Punto de la masa
         fig.add_trace(go.Scatter(
             x=[e_unb], y=[z_unb],
             mode='markers', name='Masa Desbalanceo',
-            marker=dict(size=12, color=col_unb),
-            showlegend=True
+            marker=dict(size=12, color='red')
         ), row=1, col=2)
 
-    # --- ESTILO DE EJES Y FUENTES ---
-    # Actualizar fuentes y tamaño de letra
+    # --- CONFIGURACIÓN DE ESTILO ---
     fig.update_layout(
         font=dict(size=14),
         legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
-        height=600,
+        height=550,
         plot_bgcolor='white'
     )
 
-    # Configurar ejes (Líneas punto y raya en negrita se simulan con zero-lines)
     for i in range(1, 3):
-        # Eje X
         fig.update_xaxes(
-            title_text="Eje X [m]",
-            showgrid=True, gridcolor='lightgray',
-            zeroline=True, zerolinewidth=3, zerolinecolor='black', # "Negrita"
+            title_text="<b>Eje X [m]</b>",
+            showgrid=True, gridcolor='whitesmoke',
+            zeroline=True, zerolinewidth=3, zerolinecolor='black',
             row=1, col=i
         )
-        # Eje Y/Z
-        title_y = "Eje Y [m]" if i == 1 else "Eje Z (Altura) [m]"
+        eje_y_tit = "<b>Eje Y [m]</b>" if i == 1 else "<b>Eje Z (Altura) [m]</b>"
         fig.update_yaxes(
-            title_text=title_y,
-            showgrid=True, gridcolor='lightgray',
+            title_text=eje_y_tit,
+            showgrid=True, gridcolor='whitesmoke',
             zeroline=True, zerolinewidth=3, zerolinecolor='black',
             row=1, col=i
         )
 
     return fig
-
 
 
 
