@@ -123,6 +123,7 @@ class SimuladorCentrifuga:
 
 
         K, C = np.zeros((6, 6)), np.zeros((6, 6))
+        K += np.eye(6) * 1e-6
         for damper in self.dampers:
             T = damper.get_matriz_T(cg_global)
             K += T.T @ damper.get_matriz_K() @ T
