@@ -502,7 +502,7 @@ with tab_dampers:
 
 
 
-ddef dibujar_modelo_2d(modelo):
+def dibujar_modelo_2d(modelo):
     # Obtener datos actuales
     _, _, _, cg_global = modelo.armar_matrices()
     pos_sensor = modelo.pos_sensor
