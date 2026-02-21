@@ -526,7 +526,7 @@ st.markdown("""
 
 
 st.subheader("📋 Resumen de Cargas por Apoyo")
-df_cargas = calcular_tabla_fuerzas_realista(modelo_base, rpm_obj)
+df_cargas = calcular_tabla_fuerzas(modelo_base, rpm_obj)
 
 if not df_cargas.empty:
     st.dataframe(
