@@ -94,6 +94,10 @@ class SimuladorCentrifuga:
             I_global += (I_local + term_steiner)
 
         M[0:3, 0:3], M[3:6, 3:6] = np.eye(3) * m_total, I_global
+
+        # Añadimos una pequeña identidad para estabilidad numérica (1e-7 es seguro)
+        M += np.eye(6) * 1e-7
+
         K, C = np.zeros((6, 6)), np.zeros((6, 6))
         for damper in self.dampers:
             T = damper.get_matriz_T(cg_global)
