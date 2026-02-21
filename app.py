@@ -108,6 +108,16 @@ class SimuladorCentrifuga:
 
     def calcular_frecuencias_naturales(self):
       M, K, C, _ = self.armar_matrices()
+
+      with st.expander("DEBUG: Inspección de Matriz de Masa (M)"):
+          st.write("Si ves ceros en la diagonal o valores extraños, aquí está el error:")
+          st.dataframe(pd.DataFrame(M))
+          
+          # Verificar si es definida positiva numéricamente
+          det_m = np.linalg.det(M)
+          st.write(f"Determinante de M: {det_m}")
+          if det_m <= 0:
+              st.error("Error crítico: La matriz de masa M no es definida positiva (Determinante <= 0). Revisa las inercias de los componentes.")
     
       # Resolvemos el problema de autovalores generalizado: K * v = lambda * M * v
       # evals son los autovalores (w^2), evecs son los modos de vibración
@@ -135,16 +145,13 @@ def ejecutar_barrido_rpm(modelo, rpm_range, d_idx):
     M, K, C, cg_global = modelo.armar_matrices()
     T_sensor = modelo.obtener_matriz_sensor(cg_global)
 
-
     # --- Preparación damper específico ---
     damper_d = modelo.dampers[d_idx]
     T_damper = damper_d.get_matriz_T(cg_global)
     ks = [damper_d.kx, damper_d.ky, damper_d.kz]
     cs = [damper_d.cx, damper_d.cy, damper_d.cz]
 
-
     ex = modelo.excitacion
-   
     dist = ex['distancia_eje']
 
     acel_cg = {"x": [], "y": [], "z": []}
