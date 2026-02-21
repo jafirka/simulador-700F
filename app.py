@@ -267,10 +267,10 @@ if 'dampers_prop_data' not in st.session_state:
 
 if 'dampers_pos_data' not in st.session_state:
     st.session_state.dampers_pos_data = [
-        {"Nombre": "D1 (Motor)", "X": -1.4, "Y": -0.84, "Z": -0.2, "Tipo": "Ref_1"},
-        {"Nombre": "D2 (Motor)", "X": 1.4, "Y":  -0.84, "Z": -0.2, "Tipo": "Ref_1"},
-        {"Nombre": "D3 (Front)", "X": -1.4, "Y": -0.84, "Z": -2.0, "Tipo": "Ref_2"},
-        {"Nombre": "D4 (Front)", "X": 1.4, "Y":  -0.84, "Z": -2.0, "Tipo": "Ref_2"},
+        {"Nombre": "D1 (Motor)", "X": -1.4, "Y": -0.4, "Z": -0.2, "Tipo": "Ref_1"},
+        {"Nombre": "D2 (Motor)", "X": 1.4, "Y":  -0.4, "Z": -0.2, "Tipo": "Ref_1"},
+        {"Nombre": "D3 (Front)", "X": -1.4, "Y": -0.4, "Z": -2.0, "Tipo": "Ref_2"},
+        {"Nombre": "D4 (Front)", "X": 1.4, "Y":  -0.4, "Z": -2.0, "Tipo": "Ref_2"},
     ]
 
 
@@ -662,7 +662,7 @@ modelo_base = SimuladorCentrifuga(config_base)
 f_res_rpm, modos = modelo_base.calcular_frecuencias_naturales()
 # RPM de operación
 
-rpm_range = np.linspace(10, rpm_obj*1.2, 500)
+rpm_range = np.linspace(10, rpm_obj*1.2, 1000)
 idx_op = np.argmin(np.abs(rpm_range - rpm_obj))
 
 rpm_range, D_desp, D_fuerza, acel_cg, vel_cg, S_desp, S_vel, S_acel = ejecutar_barrido_rpm(modelo_base, rpm_range, d_idx)
