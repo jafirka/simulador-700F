@@ -219,15 +219,15 @@ def ejecutar_barrido_rpm(modelo, rpm_range, d_idx):
 # --- INICIALIZADOR DE DATOS (Fuente de Verdad Única) ---
 if 'componentes_data' not in st.session_state:
     st.session_state.componentes_data = {
-        "bancada": {"m": 3542.0, "pos": [0.194, 0.0, 0.859], "I": [[3235.0, 0, 0], [0, 3690.0, 0], [0, 0, 2779.0]]},
-        "cesto": {"m": 1980.0, "pos": [0.5, 0.0, 0.0], "I": [[178.0, 0, 0], [0, 392.0, 0], [0, 0, 312.0]]}
+        "bancada": {"m": 3542.0, "pos": [0.0, 0.0, 0.0], "I": [[9235.0, 0, 0], [0, 5690.0, 0], [0, 0, 3779.0]]},
+        "cesto": {"m": 1980.0, "pos": [0.0, 0.0, 0.5], "I": [[178.0, 0, 0], [0, 392.0, 0], [0, 0, 312.0]]}
     }
 
 if 'configuracion_sistema' not in st.session_state:
     st.session_state.configuracion_sistema = {
         "eje_horizontal": "z",
         "distancia_eje": 0.8,
-        "sensor_pos": [0.0, 0.8, 0.0],
+        "sensor_pos": [0.0, 0.2, 0.0],
         "diametro_cesto": 1250  # Valor por defecto (mm)
     }
 
@@ -239,10 +239,10 @@ if 'dampers_prop_data' not in st.session_state:
 
 if 'dampers_pos_data' not in st.session_state:
     st.session_state.dampers_pos_data = [
-        {"Nombre": "D1 (Motor)", "X": 1.12, "Y": 0.84, "Z": 0.0, "Tipo": "Ref_1"},
-        {"Nombre": "D2 (Motor)", "X": 1.12, "Y": -0.84, "Z": 0.0, "Tipo": "Ref_1"},
-        {"Nombre": "D3 (Front)", "X": -0.93, "Y": 0.84, "Z": 0.0, "Tipo": "Ref_2"},
-        {"Nombre": "D4 (Front)", "X": -0.93, "Y": -0.84, "Z": 0.0, "Tipo": "Ref_2"},
+        {"Nombre": "D1 (Motor)", "X": -0.8, "Y": 0.84, "Z": 1.0, "Tipo": "Ref_1"},
+        {"Nombre": "D2 (Motor)", "X": -0.8, "Y": -0.84, "Z": 1.0, "Tipo": "Ref_1"},
+        {"Nombre": "D3 (Front)", "X": -0.8, "Y": 0.84, "Z": -1.0, "Tipo": "Ref_2"},
+        {"Nombre": "D4 (Front)", "X": -0.8, "Y": -0.84, "Z": -1.0, "Tipo": "Ref_2"},
     ]
 
 
