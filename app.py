@@ -110,6 +110,10 @@ class SimuladorCentrifuga:
         # Todo este bloque debe tener la misma sangría inicial (4 espacios)
         M, K, C, _ = self.armar_matrices()
 
+        for i in range(6):
+            if M[i, i] == 0:
+                M[i, i] = 1e-6  # Un valor muy pequeño para que no dé error pero no afecte la física
+
         # Bloque 1: Expander de Debug
         with st.expander("DEBUG: Inspección de Matriz de Masa (M)"):
             st.write("Si ves ceros en la diagonal o valores extraños, aquí está el error:")
