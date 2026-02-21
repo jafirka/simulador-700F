@@ -523,6 +523,27 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
+st.subheader(f"📊 Resumen de Cargas en Dampers (@ {rpm_obj} RPM)")
+
+with st.expander("Ver tabla de fuerzas detallada", expanded=True):
+    df_fuerzas = calcular_tabla_fuerzas(modelo_base, rpm_obj)
+    
+    # Aplicamos un estilo para resaltar la fuerza total
+    st.dataframe(
+        df_fuerzas,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "F. Total Máx (Z) [N]": st.column_config.NumberColumn(
+                help="Suma de la carga estática (peso) y la carga dinámica en el eje vertical."
+            )
+        }
+    )
+    
+    st.caption("Nota: La fuerza estática se distribuye equitativamente entre los apoyos.")
+
+
+
 
 # --- DEFINICIÓN DE EJES PARA GRÁFICOS (Pegar antes de los bucles for) ---
 eje_axial = "z"
