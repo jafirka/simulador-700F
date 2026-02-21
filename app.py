@@ -658,6 +658,17 @@ def dibujar_modelo_3d(modelo: SimuladorCentrifuga):
     )
     return fig
 
+st.subheader("🌐 Visualización 3D del Modelo")
+
+# Asegúrate de que el modelo_base ya esté inicializado antes de llamar a dibujar_modelo_3d
+if 'modelo_base' in locals() or 'modelo_base' in globals(): # Comprueba si modelo_base existe
+    fig_3d = dibujar_modelo_3d(modelo_base)
+    st.plotly_chart(fig_3d, use_container_width=True)
+else:
+    st.warning("Carga una configuración o ajusta los parámetros para ver el modelo 3D.")
+
+st.divider()
+
 
 
 
