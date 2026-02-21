@@ -128,30 +128,32 @@ class SimuladorCentrifuga:
             K += T.T @ damper.get_matriz_K() @ T
             C += T.T @ damper.get_matriz_C() @ T
 
+        st.write("Verifica el determinante:— Si es cero o muy pequeño, tu sistema de masa no es físicamente posible.")
+        st.write(f"Determinante"np.linalg.det(M))
+        # --- VALIDACIÓN DE SALUD MATRICIAL ---
+        # 1. Verificar que la masa total sea positiva
+        if m_total <= 0:
+            st.error("❌ Error Crítico: La masa total es cero o negativa.")
+
+        # 2. Verificar si la matriz de Inercia es Definida Positiva
+        # (Si no lo es, los autovalores serán imaginarios y el sistema 'desaparece')
+        try:
+            np.linalg.cholesky(I_global) 
+        except np.linalg.LinAlgError:
+            st.error("🚨 ¡Inestabilidad Numérica! La matriz de inercia global no es válida.")
+            st.warning(f"Esto ocurre porque el movimiento de 1mm cambió el CG de forma que el término de Steiner superó a la inercia local. Revisa las posiciones de las masas.")
+            # Mostramos los autovalores para diagnóstico
+            evs = np.linalg.eigvals(I_global)
+            st.write("Autovalores de I_global:", evs)
+
+        # 3. Verificar el condicionamiento (si es muy alto, linalg.solve fallará)
+        cond_M = np.linalg.cond(M)
+        if cond_M > 1e12:
+            st.warning(f"⚠️ Matriz de Masa mal condicionada (Cond: {cond_M:.2e}). Resultados poco fiables.")
+
         return M, K, C, cg_global
 
-    st.write("Verifica el determinante:— Si es cero o muy pequeño, tu sistema de masa no es físicamente posible.")
-    st.write(f"Determinante"np.linalg.det(M))
-    # --- VALIDACIÓN DE SALUD MATRICIAL ---
-    # 1. Verificar que la masa total sea positiva
-    if m_total <= 0:
-        st.error("❌ Error Crítico: La masa total es cero o negativa.")
 
-    # 2. Verificar si la matriz de Inercia es Definida Positiva
-    # (Si no lo es, los autovalores serán imaginarios y el sistema 'desaparece')
-    try:
-        np.linalg.cholesky(I_global) 
-    except np.linalg.LinAlgError:
-        st.error("🚨 ¡Inestabilidad Numérica! La matriz de inercia global no es válida.")
-        st.warning(f"Esto ocurre porque el movimiento de 1mm cambió el CG de forma que el término de Steiner superó a la inercia local. Revisa las posiciones de las masas.")
-        # Mostramos los autovalores para diagnóstico
-        evs = np.linalg.eigvals(I_global)
-        st.write("Autovalores de I_global:", evs)
-
-    # 3. Verificar el condicionamiento (si es muy alto, linalg.solve fallará)
-    cond_M = np.linalg.cond(M)
-    if cond_M > 1e12:
-        st.warning(f"⚠️ Matriz de Masa mal condicionada (Cond: {cond_M:.2e}). Resultados poco fiables.")
 
     def calcular_frecuencias_naturales(self):
         # Todo este bloque debe tener la misma sangría inicial (4 espacios)
