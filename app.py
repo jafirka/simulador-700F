@@ -109,27 +109,27 @@ class SimuladorCentrifuga:
     def calcular_frecuencias_naturales(self):
       M, K, C, _ = self.armar_matrices()
 
-        # Bloque 1: Expander de Debug
-        with st.expander("DEBUG: Inspección de Matriz de Masa (M)"):
-            st.write("Si ves ceros en la diagonal o valores extraños, aquí está el error:")
-            st.dataframe(pd.DataFrame(M))
-            
-            # Verificar si es definida positiva numéricamente
-            det_m = np.linalg.det(M)
-            st.write(f"Determinante de M: {det_m}")
-            if det_m <= 0:
-                st.error("Error crítico: La matriz de masa M no es definida positiva (Determinante <= 0). Revisa las inercias de los componentes.")
+    # Bloque 1: Expander de Debug
+    with st.expander("DEBUG: Inspección de Matriz de Masa (M)"):
+        st.write("Si ves ceros en la diagonal o valores extraños, aquí está el error:")
+        st.dataframe(pd.DataFrame(M))
+        
+        # Verificar si es definida positiva numéricamente
+        det_m = np.linalg.det(M)
+        st.write(f"Determinante de M: {det_m}")
+        if det_m <= 0:
+            st.error("Error crítico: La matriz de masa M no es definida positiva (Determinante <= 0). Revisa las inercias de los componentes.")
 
-        # Bloque 2: Intento de calcular autovalores (Alineado con el 'with' anterior)
-        try:
-            # Verificamos la salud de M antes de usarla
-            m_evals = np.linalg.eigvals(M)
-            st.write("Autovalores de M:", m_evals)
-            
-            if np.any(m_evals <= 0):
-                st.error(f"M no es definida positiva. Autovalor mínimo: {np.min(m_evals)}")
-        except Exception as e:
-            st.write("Error calculando autovalores de M:", e)
+    # Bloque 2: Intento de calcular autovalores (Alineado con el 'with' anterior)
+    try:
+        # Verificamos la salud de M antes de usarla
+        m_evals = np.linalg.eigvals(M)
+        st.write("Autovalores de M:", m_evals)
+        
+        if np.any(m_evals <= 0):
+            st.error(f"M no es definida positiva. Autovalor mínimo: {np.min(m_evals)}")
+    except Exception as e:
+        st.write("Error calculando autovalores de M:", e)
 
 
 
