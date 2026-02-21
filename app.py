@@ -325,6 +325,26 @@ with col_img2:
     </div>
     """, unsafe_allow_html=True)
 
+import matplotlib.pyplot as plt
+import requests
+from io import BytesIO
+from PIL import Image
+
+# Función para cargar y poner ejes decorativos
+def mostrar_con_coordenadas(url):
+    response = requests.get(url)
+    img = Image.open(BytesIO(response.content))
+    fig, ax = plt.subplots()
+    ax.imshow(img)
+    # Dibujamos unas flechas en una esquina (ejemplo)
+    ax.arrow(50, 450, 100, 0, head_width=20, color='red', label='X') # Eje X
+    ax.arrow(50, 450, 0, -100, head_width=20, color='blue', label='Y') # Eje Y
+    ax.axis('off') # Quitamos los números de los bordes
+    return fig
+
+# En tu app de Streamlit:
+# st.pyplot(mostrar_con_coordenadas(url_imagen_github))
+
 st.divider()
 
 # Contenedor para los datos procesados en los tabs
