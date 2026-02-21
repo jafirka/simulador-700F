@@ -525,138 +525,75 @@ with tab_dampers:
 
 
 
-def dibujar_modelo_3d(modelo: SimuladorCentrifuga):
-    fig = go.Figure()
-
-    # Obtener CG Global una sola vez
+def dibujar_modelo_2d(modelo):
+    # Obtener datos actuales
     _, _, _, cg_global = modelo.armar_matrices()
-
-    # --- 1. Ejes de Referencia Global ---
-    # Coordenadas: [origen_x, origen_y, origen_z], [fin_x, fin_y, fin_z]
-    ejes_data = {
-        'X': {'color': 'red', 'label': 'X (Radial Horizontal)'},
-        'Y': {'color': 'blue', 'label': 'Y (Radial Vertical)'},
-        'Z': {'color': 'green', 'label': 'Z (Axial / Giro)'}
-    }
-    longitud_eje = 1.0 # Longitud de los ejes desde el origen
-
-    for i, (eje_name, props) in enumerate(ejes_data.items()):
-        vec_eje = np.zeros(3)
-        vec_eje[i] = longitud_eje
-        fig.add_trace(go.Scatter3d(
-            x=[0, vec_eje[0]], y=[0, vec_eje[1]], z=[0, vec_eje[2]],
-            mode='lines',
-            line=dict(color=props['color'], width=5),
-            name=props['label'],
-            showlegend=True
-        ))
-        # Etiqueta del eje
-        fig.add_trace(go.Scatter3d(
-            x=[vec_eje[0] * 1.1], y=[vec_eje[1] * 1.1], z=[vec_eje[2] * 1.1],
-            mode='text',
-            text=[eje_name],
-            textfont=dict(color=props['color'], size=16),
-            showlegend=False
-        ))
-
-    # --- 2. Centro de Gravedad Global (CG) ---
-    fig.add_trace(go.Scatter3d(
-        x=[cg_global[0]], y=[cg_global[1]], z=[cg_global[2]],
-        mode='markers',
-        marker=dict(size=8, color='purple', symbol='circle'),
-        name='CG Global',
-        showlegend=True
-    ))
-
-    # --- 3. Componentes (Bancada y Cesto) ---
-    for nombre, comp_data in modelo.componentes.items():
-        pos_comp = np.array(comp_data["pos"])
-        m_comp = comp_data["m"]
-        
-        # Simbolizar componente: Esfera cuyo tamaño indica masa
-        tamanio_esfera = max(3, math.log10(m_comp + 1) * 3) # Tamaño logarítmico para masas grandes
-
-        fig.add_trace(go.Scatter3d(
-            x=[pos_comp[0]], y=[pos_comp[1]], z=[pos_comp[2]],
-            mode='markers',
-            marker=dict(size=tamanio_esfera, color='gray' if nombre == 'bancada' else 'orange', 
-                       symbol='sphere', opacity=0.6),
-            name=f'Componente: {nombre} ({m_comp:.0f}kg)',
-            showlegend=True
-        ))
-        # Conectar componente a su CG global con línea punteada
-        fig.add_trace(go.Scatter3d(
-            x=[pos_comp[0], cg_global[0]], y=[pos_comp[1], cg_global[1]], z=[pos_comp[2], cg_global[2]],
-            mode='lines',
-            line=dict(color='gray', dash='dot', width=2),
-            name=f'{nombre} a CG',
-            showlegend=False
-        ))
-
-
-    # --- 4. Dampers ---
-    for i, damper in enumerate(modelo.dampers):
-        fig.add_trace(go.Scatter3d(
-            x=[damper.pos[0]], y=[damper.pos[1]], z=[damper.pos[2]],
-            mode='markers',
-            marker=dict(size=6, color='cyan', symbol='diamond'),
-            name=f'Damper {damper.nombre} (Kx={damper.kx:.1e})',
-            showlegend=True
-        ))
-    
-    # --- 5. Masa de Desbalanceo (si existe) ---
-    if modelo.excitacion['m_unbalance'] > 0:
-        # La masa de desbalanceo se aplica en el plano del cesto, en el "eje horizontal" (giro)
-        # La distancia_eje es la coordenada Z para nuestro modelo con giro en Z
-        z_unbalance = modelo.excitacion['distancia_eje']
-        
-        # Si la excentricidad es e, la masa está a 'e' distancia del eje de giro
-        # La dibujamos en X=e, Y=0 (como si estuviera en la posición de referencia)
-        e_unbalance = modelo.excitacion['e_unbalance']
-        
-        # Posición de la masa en X, Y, Z
-        pos_masa_unbalance = [e_unbalance, 0, z_unbalance]
-
-        fig.add_trace(go.Scatter3d(
-            x=[pos_masa_unbalance[0]], y=[pos_masa_unbalance[1]], z=[pos_masa_unbalance[2]],
-            mode='markers',
-            marker=dict(size=10, color='red', symbol='square'),
-            name=f'Masa Desbalanceo ({modelo.excitacion["m_unbalance"]:.1f}kg)',
-            showlegend=True
-        ))
-        # Conectar masa de desbalanceo al eje de giro para mostrar excentricidad
-        fig.add_trace(go.Scatter3d(
-            x=[0, pos_masa_unbalance[0]], y=[0, pos_masa_unbalance[1]], z=[pos_masa_unbalance[2], pos_masa_unbalance[2]],
-            mode='lines',
-            line=dict(color='red', dash='dash', width=3),
-            name='Excentricidad',
-            showlegend=False
-        ))
-
-    # --- 6. Posición del Sensor ---
     pos_sensor = modelo.pos_sensor
-    fig.add_trace(go.Scatter3d(
-        x=[pos_sensor[0]], y=[pos_sensor[1]], z=[pos_sensor[2]],
-        mode='markers',
-        marker=dict(size=7, color='lime', symbol='star'),
-        name='Sensor',
-        showlegend=True
-    ))
+    ex = modelo.excitacion
+    
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+    
+    # --- VISTA DE PLANTA (X-Y) ---
+    ax1.set_title("Vista de Planta (Radial X-Y)")
+    ax1.axhline(0, color='black', lw=1, alpha=0.3)
+    ax1.axvline(0, color='black', lw=1, alpha=0.3)
+    
+    # CG Global
+    ax1.scatter(cg_global[0], cg_global[1], color='purple', s=100, label='CG Global', marker='X')
+    
+    # Componentes
+    for nombre, c in modelo.componentes.items():
+        ax1.scatter(c['pos'][0], c['pos'][1], s=200, alpha=0.5, label=f'Masa: {nombre}')
+    
+    # Dampers
+    for d in modelo.dampers:
+        ax1.scatter(d.pos[0], d.pos[1], color='cyan', marker='d', s=80, label='Damper' if d == modelo.dampers[0] else "")
+        
+    # Sensor
+    ax1.scatter(pos_sensor[0], pos_sensor[1], color='lime', marker='*', s=150, label='Sensor')
+    
+    ax1.set_xlabel("X [m]")
+    ax1.set_ylabel("Y [m]")
+    ax1.legend(fontsize='small', loc='upper right')
+    ax1.grid(True, alpha=0.2)
+    ax1.axis('equal')
 
-    # --- Configuración del Layout 3D ---
-    fig.update_layout(
-        scene=dict(
-            xaxis_title='Eje X (m)',
-            yaxis_title='Eje Y (m)',
-            zaxis_title='Eje Z (m)',
-            aspectmode='data' # Mantener las proporciones 1:1:1
-        ),
-        margin=dict(l=0, r=0, b=0, t=0),
-        height=600,
-        hovermode='closest',
-        title='Visualización 3D del Modelo'
-    )
+    # --- VISTA DE ALZADO (X-Z) ---
+    ax2.set_title("Vista de Alzado (Lateral X-Z)")
+    ax2.axvline(0, color='black', lw=1, alpha=0.3)
+    
+    # CG Global
+    ax2.scatter(cg_global[0], cg_global[2], color='purple', s=100, marker='X')
+    
+    # Componentes
+    for nombre, c in modelo.componentes.items():
+        ax2.scatter(c['pos'][0], c['pos'][2], s=200, alpha=0.5)
+        
+    # Dampers
+    for d in modelo.dampers:
+        ax2.scatter(d.pos[0], d.pos[2], color='cyan', marker='d', s=80)
+        
+    # Sensor
+    ax2.scatter(pos_sensor[0], pos_sensor[2], color='lime', marker='*', s=150)
+    
+    # Línea de excentricidad (Desbalanceo)
+    z_unb = ex['distancia_eje']
+    e_unb = ex['e_unbalance']
+    ax2.plot([0, e_unb], [z_unb, z_unb], color='red', lw=3, label='Desbalanceo')
+    ax2.scatter(e_unb, z_unb, color='red', s=50)
+
+    ax2.set_xlabel("X [m]")
+    ax2.set_ylabel("Z (Giro) [m]")
+    ax2.grid(True, alpha=0.2)
+    ax2.axis('equal')
+
+    plt.tight_layout()
     return fig
+
+
+
+
+
 
 
 # 3️⃣ ENSAMBLAJE FINAL (Cálculo Base)
@@ -753,8 +690,8 @@ st.subheader("🌐 Visualización 3D del Modelo")
 
 # Asegúrate de que el modelo_base ya esté inicializado antes de llamar a dibujar_modelo_3d
 if 'modelo_base' in locals() or 'modelo_base' in globals(): # Comprueba si modelo_base existe
-    fig_3d = dibujar_modelo_3d(modelo_base)
-    st.plotly_chart(fig_3d, use_container_width=True)
+    fig_2d = dibujar_modelo_2d(modelo_base)
+    st.plotly_chart(fig_2d, use_container_width=True)
 else:
     st.warning("Carga una configuración o ajusta los parámetros para ver el modelo 3D.")
 
