@@ -241,3 +241,55 @@ def ejecutar_barrido_rpm(modelo, rpm_range, d_idx):
           S_acel[eje].append((w**2) * np.abs(U_sensor[i])/9.81)
     
     return rpm_range, D_desp, D_fuerza, acel_cg, vel_cg, S_desp, S_vel, S_acel
+
+
+
+    def calcular_tabla_fuerzas(modelo, rpm_obj):
+    """Calcula las fuerzas estáticas y dinámicas para todos los dampers."""
+    M, K, C, cg_global = modelo.armar_matrices()
+    m_total = sum(c["m"] for c in modelo.componentes.values())
+    peso_total = m_total * 9.81
+    
+    # 1. Fuerza Estática (Simplificada: Peso total / número de dampers)
+    # Nota: Para un cálculo exacto se necesitaría resolver el equilibrio de momentos, 
+    # pero para 4 apoyos simétricos, P/n es una buena aproximación.
+    f_estatica_por_damper = peso_total / len(modelo.dampers)
+    
+    # 2. Fuerza Dinámica a RPM nominal
+    w = rpm_obj * 2 * np.pi / 60
+    ex = modelo.excitacion
+    F0 = ex['m_unbalance'] * ex['e_unbalance'] * w**2
+    
+    # Vector de excitación
+    F = np.zeros(6, dtype=complex)
+    arm = ex['distancia_eje'] - cg_global[2]
+    F[0], F[1] = F0, F0 * 1j
+    F[3], F[4] = (F0 * 1j) * arm, -F0 * arm
+    
+    # Respuesta del sistema
+    Z = -w**2 * M + 1j*w * C + K
+    X = linalg.solve(Z, F)
+    
+    resumen = []
+    for d in modelo.dampers:
+        T_d = d.get_matriz_T(cg_global)
+        X_d = T_d @ X
+        ks = [d.kx, d.ky, d.kz]
+        cs = [d.cx, d.cy, d.cz]
+        
+        # Calculamos la fuerza dinámica total (módulo) en cada eje
+        f_dinamica_ejes = []
+        for i in range(3):
+            f_comp = (ks[i] + 1j * w * cs[i]) * X_d[i]
+            f_dinamica_ejes.append(np.abs(f_comp))
+            
+        resumen.append({
+            "Damper": d.nombre,
+            "F. Estática (Z) [N]": round(f_estatica_por_damper, 1),
+            "F. Dinámica X [N]": round(f_dinamica_ejes[0], 1),
+            "F. Dinámica Y [N]": round(f_dinamica_ejes[1], 1),
+            "F. Dinámica Z [N]": round(f_dinamica_ejes[2], 1),
+            "F. Total Máx (Z) [N]": round(f_estatica_por_damper + f_dinamica_ejes[2], 1)
+        })
+        
+    return pd.DataFrame(resumen)
