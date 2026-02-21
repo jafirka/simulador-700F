@@ -134,35 +134,6 @@ class SimuladorCentrifuga:
         # Todo este bloque debe tener la misma sangría inicial (4 espacios)
         M, K, C, _ = self.armar_matrices()
 
-
-
-        # Bloque 1: Expander de Debug
-        with st.expander("DEBUG: Inspección de Matriz de Masa (M)"):
-            st.write("Si ves ceros en la diagonal o valores extraños, aquí está el error:")
-            st.dataframe(pd.DataFrame(M))
-            
-            # Verificar si es definida positiva numéricamente
-            det_m = np.linalg.det(M)
-            st.write(f"Determinante de M: {det_m}")
-            if det_m <= 0:
-                st.error("Error crítico: La matriz de masa M no es definida positiva (Determinante <= 0). Revisa las inercias de los componentes.")
-
-        # Bloque 2: Verificación de salud de M (Alineado con el 'with')
-        try:
-            m_evals = np.linalg.eigvals(M)
-            st.write("Autovalores de M:", m_evals)
-            
-            if np.any(m_evals <= 0):
-                st.error(f"M no es definida positiva. Autovalor mínimo: {np.min(m_evals)}")
-        except Exception as e:
-            st.write("Error calculando autovalores de M:", e)
-
-        cond = np.linalg.cond(M)
-        st.write(f"Número de condición de M: {cond:.2e}")
-        
-        diff_simetria = np.max(np.abs(M - M.T))
-        st.write(f"Desviación de simetría máxima: {diff_simetria}") 
-
         # Cálculo del problema de autovalores generalizado
         # K * v = λ * M * v
         evals, evecs = linalg.eigh(K, M)
