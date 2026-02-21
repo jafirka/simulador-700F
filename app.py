@@ -106,48 +106,48 @@ class SimuladorCentrifuga:
 
         return M, K, C, cg_global
 
-   def calcular_frecuencias_naturales(self):
-    # Todo este bloque debe tener la misma sangría inicial (4 espacios)
-    M, K, C, _ = self.armar_matrices()
+    def calcular_frecuencias_naturales(self):
+        # Todo este bloque debe tener la misma sangría inicial (4 espacios)
+        M, K, C, _ = self.armar_matrices()
 
-    # Bloque 1: Expander de Debug
-    with st.expander("DEBUG: Inspección de Matriz de Masa (M)"):
-        st.write("Si ves ceros en la diagonal o valores extraños, aquí está el error:")
-        st.dataframe(pd.DataFrame(M))
+        # Bloque 1: Expander de Debug
+        with st.expander("DEBUG: Inspección de Matriz de Masa (M)"):
+            st.write("Si ves ceros en la diagonal o valores extraños, aquí está el error:")
+            st.dataframe(pd.DataFrame(M))
+            
+            # Verificar si es definida positiva numéricamente
+            det_m = np.linalg.det(M)
+            st.write(f"Determinante de M: {det_m}")
+            if det_m <= 0:
+                st.error("Error crítico: La matriz de masa M no es definida positiva (Determinante <= 0). Revisa las inercias de los componentes.")
+
+        # Bloque 2: Verificación de salud de M (Alineado con el 'with')
+        try:
+            m_evals = np.linalg.eigvals(M)
+            st.write("Autovalores de M:", m_evals)
+            
+            if np.any(m_evals <= 0):
+                st.error(f"M no es definida positiva. Autovalor mínimo: {np.min(m_evals)}")
+        except Exception as e:
+            st.write("Error calculando autovalores de M:", e)
+
+        # Cálculo del problema de autovalores generalizado
+        # K * v = λ * M * v
+        evals, evecs = linalg.eigh(K, M)
         
-        # Verificar si es definida positiva numéricamente
-        det_m = np.linalg.det(M)
-        st.write(f"Determinante de M: {det_m}")
-        if det_m <= 0:
-            st.error("Error crítico: La matriz de masa M no es definida positiva (Determinante <= 0). Revisa las inercias de los componentes.")
-
-    # Bloque 2: Verificación de salud de M (Alineado con el 'with')
-    try:
-        m_evals = np.linalg.eigvals(M)
-        st.write("Autovalores de M:", m_evals)
+        # Limpieza de valores por precisión numérica
+        evals = np.maximum(evals, 0)
         
-        if np.any(m_evals <= 0):
-            st.error(f"M no es definida positiva. Autovalor mínimo: {np.min(m_evals)}")
-    except Exception as e:
-        st.write("Error calculando autovalores de M:", e)
+        # Frecuencias angulares (rad/s)
+        w_n = np.sqrt(evals)
+        
+        # Convertir a Hz y a RPM
+        f_hz = w_n / (2 * np.pi)
+        f_rpm = f_hz * 60
 
-    # Cálculo del problema de autovalores generalizado
-    # K * v = λ * M * v
-    evals, evecs = linalg.eigh(K, M)
-    
-    # Limpieza de valores por precisión numérica
-    evals = np.maximum(evals, 0)
-    
-    # Frecuencias angulares (rad/s)
-    w_n = np.sqrt(evals)
-    
-    # Convertir a Hz y a RPM
-    f_hz = w_n / (2 * np.pi)
-    f_rpm = f_hz * 60
+        return f_rpm, evecs
 
-    return f_rpm, evecs
 
-    
 
 # ==========================================
 # 2️⃣ LÓGICA DE CÁLCULO
