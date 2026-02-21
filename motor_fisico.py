@@ -244,7 +244,7 @@ def ejecutar_barrido_rpm(modelo, rpm_range, d_idx):
 
 
 
-    def calcular_tabla_fuerzas(modelo, rpm_obj):
+def calcular_tabla_fuerzas(modelo, rpm_obj):
     """Calcula las fuerzas estáticas y dinámicas para todos los dampers."""
     M, K, C, cg_global = modelo.armar_matrices()
     m_total = sum(c["m"] for c in modelo.componentes.values())
