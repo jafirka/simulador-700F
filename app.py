@@ -8,6 +8,7 @@ import json
 import pandas as pd
 import re
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 # ==========================================
 # 1️⃣ TUS CLASES
@@ -499,85 +500,117 @@ with tab_dampers:
                 })
 
 
-
-
-
-def dibujar_modelo_2d(modelo):
-    # Obtener datos actuales
+def dibujar_modelo_2d_plotly(modelo):
+    # Obtener datos
     _, _, _, cg_global = modelo.armar_matrices()
     pos_sensor = modelo.pos_sensor
     ex = modelo.excitacion
     
-    plt.rcParams.update({'font.size': 12})
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
-    
-    # --- VISTA FRONTAL (X-Y) ---
-    ax1.set_title("Vista Frontal (X-Y)", fontsize=16, fontweight='bold')
-    # Ejes "punto y raya" en negrita
-    ax1.axhline(0, color='black', linestyle='-.', linewidth=2, alpha=0.8)
-    ax1.axvline(0, color='black', linestyle='-.', linewidth=2, alpha=0.8)
-    
-    # Dibujamos y asignamos labels
-    ax1.scatter(cg_global[0], cg_global[1], color='purple', s=150, label='Centro de Gravedad (CG)', marker='X', zorder=5)
-    
-    colores_comp = ['#1f77b4', '#ff7f0e', '#2ca02c']
-    for i, (nombre, c) in enumerate(modelo.componentes.items()):
-        ax1.scatter(c['pos'][0], c['pos'][1], s=250, alpha=0.6, 
-                    label=f'Masa: {nombre.capitalize()}', color=colores_comp[i % 3])
-    
+    # Crear subplots: 1 fila, 2 columnas
+    fig = make_subplots(
+        rows=1, cols=2,
+        subplot_titles=("<b>Vista Frontal (X-Y)</b>", "<b>Vista de Planta (X-Z)</b>"),
+        horizontal_spacing=0.15
+    )
+
+    # Colores consistentes
+    col_cg = "purple"
+    col_comp = ["#1f77b4", "#ff7f0e"] # Azul para Bancada, Naranja para Cesto
+    col_damp = "cyan"
+    col_sens = "lime"
+    col_unb  = "red"
+
+    # --- FUNCIÓN AUXILIAR PARA EVITAR REPETIR LEYENDAS ---
+    nombres_agregados = set()
+    def add_trace_unique(trace, row, col):
+        if trace.name not in nombres_agregados:
+            trace.showlegend = True
+            nombres_agregados.add(trace.name)
+        else:
+            trace.showlegend = False
+        fig.add_trace(trace, row=row, col=col)
+
+    # 1. CENTRO DE GRAVEDAD (CG)
+    for r, c, coord_z in [(1, 1, cg_global[1]), (1, 2, cg_global[2])]:
+        add_trace_unique(go.Scatter(
+            x=[cg_global[0]], y=[coord_z],
+            mode='markers', name='Centro de Gravedad (CG)',
+            marker=dict(symbol='x', size=12, color=col_cg, line=dict(width=2))
+        ), r, c)
+
+    # 2. COMPONENTES (Bancada y Cesto)
+    for i, (nombre, comp) in enumerate(modelo.componentes.items()):
+        color = col_comp[i % len(col_comp)]
+        for r, c, coord_z in [(1, 1, comp['pos'][1]), (1, 2, comp['pos'][2])]:
+            add_trace_unique(go.Scatter(
+                x=[comp['pos'][0]], y=[coord_z],
+                mode='markers', name=f'Masa: {nombre.capitalize()}',
+                marker=dict(size=18, color=color, opacity=0.7)
+            ), r, c)
+
+    # 3. DAMPERS (Aisladores)
     for i, d in enumerate(modelo.dampers):
-        label_d = 'Aisladores (Dampers)' if i == 0 else "" # Solo etiqueta el primero para no repetir
-        ax1.scatter(d.pos[0], d.pos[1], color='cyan', marker='d', s=100, edgecolors='black', label=label_d)
-        
-    ax1.scatter(pos_sensor[0], pos_sensor[1], color='lime', marker='*', s=250, edgecolors='black', label='Sensor Velocidad')
-    
-    ax1.set_xlabel("Eje X [m]")
-    ax1.set_ylabel("Eje Y [m]")
-    ax1.grid(True, linestyle=':', alpha=0.6)
-    ax1.axis('equal')
+        for r, c, coord_z in [(1, 1, d.pos[1]), (1, 2, d.pos[2])]:
+            add_trace_unique(go.Scatter(
+                x=[d.pos[0]], y=[coord_z],
+                mode='markers', name='Aisladores (Dampers)',
+                marker=dict(symbol='diamond', size=10, color=col_damp, line=dict(color='black', width=1))
+            ), r, c)
 
-    # --- VISTA DE PLANTA (X-Z) ---
-    ax2.set_title("Vista de Planta (X-Z)", fontsize=16, fontweight='bold')
-    ax2.axhline(0, color='black', linestyle='-.', linewidth=2, alpha=0.8)
-    ax2.axvline(0, color='black', linestyle='-.', linewidth=2, alpha=0.8)
-    
-    # En el segundo gráfico NO ponemos labels para que no se dupliquen en la leyenda global
-    ax2.scatter(cg_global[0], cg_global[2], color='purple', s=150, marker='X', zorder=5)
-    
-    for i, (nombre, c) in enumerate(modelo.componentes.items()):
-        ax2.scatter(c['pos'][0], c['pos'][2], s=250, alpha=0.6, color=colores_comp[i % 3])
-        
-    for d in modelo.dampers:
-        ax2.scatter(d.pos[0], d.pos[2], color='cyan', marker='d', s=100, edgecolors='black')
-        
-    ax2.scatter(pos_sensor[0], pos_sensor[2], color='lime', marker='*', s=250, edgecolors='black')
-    
-    # Masa de Desbalanceo (etiquetamos aquí porque no está en el otro gráfico)
-    z_unb = ex['distancia_eje']
-    e_unb = ex['e_unbalance']
+    # 4. SENSOR
+    for r, c, coord_z in [(1, 1, pos_sensor[1]), (1, 2, pos_sensor[2])]:
+        add_trace_unique(go.Scatter(
+            x=[pos_sensor[0]], y=[coord_z],
+            mode='markers', name='Sensor Velocidad',
+            marker=dict(symbol='star', size=15, color=col_sens, line=dict(color='black', width=1))
+        ), r, c)
+
+    # 5. MASA DESBALANCEO (Solo en Vista de Planta X-Z)
     if ex['m_unbalance'] > 0:
-        ax2.plot([0, e_unb], [z_unb, z_unb], color='red', linestyle='--', linewidth=2)
-        ax2.scatter(e_unb, z_unb, color='red', s=150, label='Masa Desbalanceo', zorder=6)
+        z_unb = ex['distancia_eje']
+        e_unb = ex['e_unbalance']
+        # Línea de excentricidad
+        fig.add_trace(go.Scatter(
+            x=[0, e_unb], y=[z_unb, z_unb],
+            mode='lines', name='Radio Desbalanceo',
+            line=dict(color=col_unb, width=2, dash='dash'),
+            showlegend=True
+        ), row=1, col=2)
+        # Punto de la masa
+        fig.add_trace(go.Scatter(
+            x=[e_unb], y=[z_unb],
+            mode='markers', name='Masa Desbalanceo',
+            marker=dict(size=12, color=col_unb),
+            showlegend=True
+        ), row=1, col=2)
 
-    ax2.set_xlabel("Eje X [m]")
-    ax2.set_ylabel("Eje Z (Altura) [m]")
-    ax2.grid(True, linestyle=':', alpha=0.6)
-    ax2.axis('equal')
+    # --- ESTILO DE EJES Y FUENTES ---
+    # Actualizar fuentes y tamaño de letra
+    fig.update_layout(
+        font=dict(size=14),
+        legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
+        height=600,
+        plot_bgcolor='white'
+    )
 
-    # --- LEYENDA UNIFICADA ---
-    # Capturamos los labels de ambos ejes y los combinamos sin repetir
-    handles, labels = [], []
-    for ax in [ax1, ax2]:
-        for h, l in zip(*ax.get_legend_handles_labels()):
-            if l not in labels:
-                handles.append(h)
-                labels.append(l)
-    
-    # Colocamos la leyenda centrada debajo de los gráficos
-    fig.legend(handles, labels, loc='lower center', ncol=3, bbox_to_anchor=(0.5, -0.05), 
-               frameon=True, shadow=True, fontsize=11)
+    # Configurar ejes (Líneas punto y raya en negrita se simulan con zero-lines)
+    for i in range(1, 3):
+        # Eje X
+        fig.update_xaxes(
+            title_text="Eje X [m]",
+            showgrid=True, gridcolor='lightgray',
+            zeroline=True, zerolinewidth=3, zerolinecolor='black', # "Negrita"
+            row=1, col=i
+        )
+        # Eje Y/Z
+        title_y = "Eje Y [m]" if i == 1 else "Eje Z (Altura) [m]"
+        fig.update_yaxes(
+            title_text=title_y,
+            showgrid=True, gridcolor='lightgray',
+            zeroline=True, zerolinewidth=3, zerolinecolor='black',
+            row=1, col=i
+        )
 
-    plt.tight_layout(rect=[0, 0.05, 1, 1]) # Ajustamos espacio para que quepa la leyenda
     return fig
 
 
