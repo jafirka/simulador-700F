@@ -319,10 +319,18 @@ def dibujar_modelo_2d(modelo):
         height=600, plot_bgcolor='white'
     )
 
-    for i in range(1, 3):
-        fig.update_xaxes(title_text="<b>Eje X [m]</b>", zeroline=True, zerolinewidth=3, zerolinecolor='black', row=1, col=i)
-        tit_y = "<b>Eje Y [m]</b>" if i == 1 else "<b>Eje Z (Altura) [m]</b>"
-        fig.update_yaxes(title_text=tit_y, zeroline=True, zerolinewidth=3, zerolinecolor='black', row=1, col=i)
+    # Vista Frontal (X-Y): X normal (Derecha)
+    fig.update_xaxes(title_text="<b>Eje X [m]</b>", zeroline=True, row=1, col=1)
+    fig.update_yaxes(title_text="<b>Eje Y (Altura) [m]</b>", zeroline=True, row=1, col=1)
+
+    # Vista de Planta (X-Z): Invertimos X para que sea coherente con Z hacia adelante
+    fig.update_xaxes(
+        title_text="<b>Eje X [m]</b>", 
+        zeroline=True, 
+        autorange="reversed", # <--- ESTO invierte el eje X solo en la planta
+        row=1, col=2
+    )
+    fig.update_yaxes(title_text="<b>Eje Z (Profundidad) [m]</b>", zeroline=True, row=1, col=2)
 
     return fig
 
@@ -398,12 +406,6 @@ if archivo_subido is not None:
         except Exception as e:
             st.sidebar.error(f"Error al procesar el archivo: {e}")
 
-st.sidebar.write("---") # Separador visual interno
-
-
-
-
-
 # 3️⃣ GUARDADO ARCHIVO
 
 def json_compacto(obj):
@@ -428,8 +430,6 @@ def json_compacto(obj):
     
     return content
 
-st.sidebar.divider()
-st.sidebar.header("💾 Gestión de Archivos")
 # --- FUNCIONALIDAD DE EXPORTAR (Download) ---
 # Preparamos el diccionario con todo lo que hay en memoria actualmente
 datos_a_exportar = {
