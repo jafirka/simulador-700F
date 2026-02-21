@@ -251,7 +251,7 @@ def ejecutar_barrido_rpm(modelo, rpm_range, d_idx):
 # --- INICIALIZADOR DE DATOS (Fuente de Verdad Única) ---
 if 'componentes_data' not in st.session_state:
     st.session_state.componentes_data = {
-        "bancada": {"m": 10542.0, "pos": [0.0, 0.0, 0.0], "I": [[9235.0, 1, 1], [1, 5690.0, 1], [1, 1, 3779.0]]},
+        "bancada": {"m": 10542.0, "pos": [0.00001, 0.0, 0.0], "I": [[9235.0, 1, 1], [1, 5690.0, 1], [1, 1, 3779.0]]},
         "cesto": {"m": 980.0, "pos": [0.0, 0.0, 0.0], "I": [[178.0, 0, 0], [0, 392.0, 0], [0, 0, 312.0]]}
     }
 
