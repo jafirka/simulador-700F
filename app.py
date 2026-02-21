@@ -523,29 +523,28 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-st.subheader("📋 Análisis de Cargas Reales en Apoyos")
 
-df_cargas = calcular_tabla_fuerzas(modelo_base, rpm_obj)
+
+st.subheader("📋 Resumen de Cargas por Apoyo")
+df_cargas = calcular_tabla_fuerzas_realista(modelo_base, rpm_obj)
 
 if not df_cargas.empty:
-    # Estilo: Colorear en rojo si el "Margen de Tracción" es negativo
-    def highlight_negative(val):
-        color = 'red' if val < 0 else 'black'
-        return f'color: {color}'
-
     st.dataframe(
-        df_cargas.style.applymap(highlight_negative, subset=['Margen de Tracción [N]']),
+        df_cargas,
         use_container_width=True,
-        hide_index=True
+        hide_index=True,
+        column_config={
+            "Carga Vert. Máx (Est+Z) [N]": st.column_config.NumberColumn(
+                "Carga Vert. Máx [N]",
+                help="Suma de la carga estática y la amplitud de la fuerza dinámica vertical (Z).",
+                format="%.1f"
+            )
+        }
     )
-
-    # Alerta crítica
-    if (df_cargas['Margen de Tracción [N]'] < 0).any():
-        st.error("🚨 **PELIGRO:** Se ha detectado que la fuerza dinámica es superior a la estática en uno o más apoyos. El damper se separará de la base (vuelo), lo que provocará impactos y ruido excesivo.")
-    else:
-        st.success("✅ Los apoyos mantienen contacto permanente con la base (Carga neta siempre positiva).")
-else:
-    st.warning("No hay dampers definidos para calcular las reacciones.")
+    
+    # Verificación de seguridad rápida
+    if any(df_cargas["Dinámica Z [N]"] > df_cargas["Carga Estática [N]"]):
+        st.warning("⚠️ Atención: En algunos apoyos la fuerza dinámica Z supera la estática. Riesgo de pérdida de contacto.")
 
 
 
