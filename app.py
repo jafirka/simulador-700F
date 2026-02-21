@@ -131,6 +131,8 @@ class SimuladorCentrifuga:
         # 1. Masa total
         if m_total <= 0:
             st.error("❌ Error Crítico: La masa total es cero o negativa.")
+        st.error(f"Masa total: {m_total:.2f} kg")
+
 
         # 2. Determinante de M (Corregido el error de sintaxis)
         det_M = np.linalg.det(M)
