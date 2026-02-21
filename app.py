@@ -1,4 +1,4 @@
-
+from motor_fisico import
 
 # ==========================================
 # 3️⃣ ENTORNO VISUAL (INTERFAZ)
