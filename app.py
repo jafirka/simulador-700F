@@ -118,6 +118,16 @@ class SimuladorCentrifuga:
           st.write(f"Determinante de M: {det_m}")
           if det_m <= 0:
               st.error("Error crítico: La matriz de masa M no es definida positiva (Determinante <= 0). Revisa las inercias de los componentes.")
+
+        try:
+        # Verificamos la salud de M antes de usarla
+        m_evals = np.linalg.eigvals(M)
+        st.write("Autovalores de M:", m_evals)
+        
+        if np.any(m_evals <= 0):
+            st.error(f"M no es definida positiva. Autovalor mínimo: {np.min(m_evals)}")
+        except Exception as e:
+            st.write("Error calculando autovalores de M:", e)
     
       # Resolvemos el problema de autovalores generalizado: K * v = lambda * M * v
       # evals son los autovalores (w^2), evecs son los modos de vibración
