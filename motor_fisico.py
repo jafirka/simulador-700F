@@ -280,29 +280,29 @@ def calcular_reacciones_estaticas(modelo):
     
     return reacciones
 
-def calcular_tabla_fuerzas(modelo, rpm_obj):
-    """
-    Calcula las cargas estáticas, dinámicas (X, Y, Z) y la carga vertical máxima.
-    """
-    # 1. Obtener matrices y datos globales
+def calcular_tabla_fuerzas_realista(modelo, rpm_obj):
     M, K, C, cg_global = modelo.armar_matrices()
     m_total = sum(c["m"] for c in modelo.componentes.values())
-    peso_total = m_total * 9.81
+    peso_total = m_total * 9.81  # Actúa en el eje vertical (Y)
     
-    # --- CÁLCULO ESTÁTICO (Distribución real por CG) ---
     n_d = len(modelo.dampers)
-    if n_d == 0:
-        return pd.DataFrame()
+    if n_d == 0: return pd.DataFrame()
 
+    # --- EQUILIBRIO ESTÁTICO (Plano X-Z) ---
+    # b[0]: Suma Fuerzas en Y
+    # b[1]: Suma Momentos en X (brazo en Z)
+    # b[2]: Suma Momentos en Z (brazo en X)
     A = np.zeros((3, n_d))
     b = np.array([peso_total, 0, 0])
 
     for i, d in enumerate(modelo.dampers):
+        # Brazos de palanca en el plano de planta (X-Z)
         rx = d.pos[0] - cg_global[0]
-        ry = d.pos[1] - cg_global[1]
-        A[0, i] = 1        
-        A[1, i] = ry       
-        A[2, i] = -rx      
+        rz = d.pos[2] - cg_global[2]
+        
+        A[0, i] = 1          # Fuerza vertical
+        A[1, i] = rz         # Momento respecto al eje X (brazo Z)
+        A[2, i] = -rx        # Momento respecto al eje Z (brazo X)
 
     reacciones_estaticas = np.linalg.pinv(A) @ b
 
@@ -311,35 +311,39 @@ def calcular_tabla_fuerzas(modelo, rpm_obj):
     ex = modelo.excitacion
     F0 = ex['m_unbalance'] * ex['e_unbalance'] * (w**2)
     
+    # Vector de excitación (Fuerzas radiales X-Z, Momentos por desbalanceo)
     F = np.zeros(6, dtype=complex)
-    arm_z = ex['distancia_eje'] - cg_global[2]
-    F[0], F[1] = F0, F0 * 1j
-    F[3], F[4] = (F0 * 1j) * arm_z, -F0 * arm_z
+    # Brazo vertical (distancia en Y desde CG al plano de desbalanceo)
+    arm_y = ex['distancia_eje'] - cg_global[1] 
+    
+    F[0], F[2] = F0, F0 * 1j              # Fuerzas en X y Z
+    F[3], F[5] = (F0 * 1j) * arm_y, -F0 * arm_y # Momentos inducidos
 
     Z = -w**2 * M + 1j*w * C + K
     X = linalg.solve(Z, F)
 
-    # --- ENSAMBLAJE DE LA TABLA SOLICITADA ---
     resumen = []
     for i, d in enumerate(modelo.dampers):
         T_d = d.get_matriz_T(cg_global)
         X_d = T_d @ X
+        ks, cs = [d.kx, d.ky, d.kz], [d.cx, d.cy, d.cz]
         
-        # Rigideces y amortiguamientos
-        ks = [d.kx, d.ky, d.kz]
-        cs = [d.cx, d.cy, d.cz]
-        
-        # Fuerza dinámica en cada eje (módulo)
+        # Amplitudes dinámicas
         f_din = [np.abs((ks[j] + 1j * w * cs[j]) * X_d[j]) for j in range(3)]
         f_est = reacciones_estaticas[i]
+        
+        # En esta convención, la carga vertical es el eje Y (índice 1)
+        f_max_vert = f_est + f_din[1]
+        f_min_vert = f_est - f_din[1]
         
         resumen.append({
             "Damper": d.nombre,
             "Carga Estática [N]": round(f_est, 1),
-            "Dinámica X [N]": round(f_din[0], 1),
-            "Dinámica Y [N]": round(f_din[1], 1),
-            "Dinámica Z [N]": round(f_din[2], 1),
-            "Carga Vert. Máx (Est+Z) [N]": round(f_est + f_din[2], 1)
+            "Dinámica Radial X [N]": round(f_din[0], 1),
+            "Dinámica Vertical Y [N]": round(f_din[1], 1),
+            "Dinámica Radial Z [N]": round(f_din[2], 1),
+            "Carga TOTAL MÁX [N]": round(f_max_vert, 1),
+            "Margen Estabilidad [N]": round(f_min_vert, 1)
         })
 
     return pd.DataFrame(resumen)
