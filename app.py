@@ -130,6 +130,29 @@ class SimuladorCentrifuga:
 
         return M, K, C, cg_global
 
+    st.write("Verifica el determinante:— Si es cero o muy pequeño, tu sistema de masa no es físicamente posible.")
+    st.write(f"Determinante"np.linalg.det(M))
+    # --- VALIDACIÓN DE SALUD MATRICIAL ---
+    # 1. Verificar que la masa total sea positiva
+    if m_total <= 0:
+        st.error("❌ Error Crítico: La masa total es cero o negativa.")
+
+    # 2. Verificar si la matriz de Inercia es Definida Positiva
+    # (Si no lo es, los autovalores serán imaginarios y el sistema 'desaparece')
+    try:
+        np.linalg.cholesky(I_global) 
+    except np.linalg.LinAlgError:
+        st.error("🚨 ¡Inestabilidad Numérica! La matriz de inercia global no es válida.")
+        st.warning(f"Esto ocurre porque el movimiento de 1mm cambió el CG de forma que el término de Steiner superó a la inercia local. Revisa las posiciones de las masas.")
+        # Mostramos los autovalores para diagnóstico
+        evs = np.linalg.eigvals(I_global)
+        st.write("Autovalores de I_global:", evs)
+
+    # 3. Verificar el condicionamiento (si es muy alto, linalg.solve fallará)
+    cond_M = np.linalg.cond(M)
+    if cond_M > 1e12:
+        st.warning(f"⚠️ Matriz de Masa mal condicionada (Cond: {cond_M:.2e}). Resultados poco fiables.")
+
     def calcular_frecuencias_naturales(self):
         # Todo este bloque debe tener la misma sangría inicial (4 espacios)
         M, K, C, _ = self.armar_matrices()
@@ -248,7 +271,7 @@ def ejecutar_barrido_rpm(modelo, rpm_range, d_idx):
 # --- INICIALIZADOR DE DATOS (Fuente de Verdad Única) ---
 if 'componentes_data' not in st.session_state:
     st.session_state.componentes_data = {
-        "bancada": {"m": 3542.0, "pos": [0.0, 0.0, -0.5], "I": [[9235.0, 0, 0], [0, 5690.0, 0], [0, 0, 3779.0]]},
+        "bancada": {"m": 10542.0, "pos": [0.0, 0.0, -0.5], "I": [[9235.0, 0, 0], [0, 5690.0, 0], [0, 0, 3779.0]]},
         "cesto": {"m": 980.0, "pos": [0.0, 0.0, 0.5], "I": [[178.0, 0, 0], [0, 392.0, 0], [0, 0, 312.0]]}
     }
 
