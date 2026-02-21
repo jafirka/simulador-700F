@@ -668,9 +668,9 @@ st.markdown("""
 
 
 # --- DEFINICIÓN DE EJES PARA GRÁFICOS (Pegar antes de los bucles for) ---
-eje_axial = "Z"
-eje_vert_fisico = "Y"  # P.ej: si eje es 'x', este es 'y'
-eje_horiz_fisico = "X" # P.ej: si eje es 'x', este es 'z'
+eje_axial = "z"
+eje_vert_fisico = "y"  # P.ej: si eje es 'x', este es 'y'
+eje_horiz_fisico = "x" # P.ej: si eje es 'x', este es 'z'
 
 # Creamos la lista para iterar en los gráficos
 orden_grafico = [eje_vert_fisico, eje_horiz_fisico, eje_axial]
