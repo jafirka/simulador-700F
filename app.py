@@ -500,7 +500,7 @@ with tab_dampers:
                 })
 
 
-def dibujar_modelo_2d_plotly(modelo):
+def dibujar_modelo_2d(modelo):
     # Obtener datos
     _, _, _, cg_global = modelo.armar_matrices()
     pos_sensor = modelo.pos_sensor
