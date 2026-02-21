@@ -74,6 +74,13 @@ class SimuladorCentrifuga:
         ])
 
     def armar_matrices(self):
+
+        for nombre, datos in self.componentes.items():
+        if datos is None:
+            st.error(f"El componente '{nombre}' está llegando como None al simulador.")
+            return None # O maneja el error según prefieras
+
+            
         m_total = sum(c["m"] for c in self.componentes.values())
         cg_global = sum(c["m"] * np.array(c["pos"]) for c in self.componentes.values()) / m_total
 
