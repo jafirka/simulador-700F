@@ -336,22 +336,6 @@ st.header("🧱 Configuración del Sistema")
 # 1. Definir URL
 url_imagen_github = "https://raw.githubusercontent.com/jafirka/simulador-700F/main/Centrifuga.png"
 
-# 2. Crear columnas para centrar y reducir tamaño
-col_img1, col_img2, col_img3 = st.columns([1, 2, 1]) # La columna central es el doble de grande
-
-with col_img2:
-    # Mostramos la imagen con un ancho fijo (ej. 400 píxeles)
-    st.image(url_imagen_github, width=400)
-    
-    # 3. Añadir leyenda de ejes (Referencia técnica)
-    st.markdown("""
-    <div style="text-align: center; background-color: #f0f2f6; padding: 10px; border-radius: 5px; border: 1px solid #dcdfe3;">
-        <span style="color: #ff4b4b; font-weight: bold;">X</span>: Radial Horizontal | 
-        <span style="color: #1c83e1; font-weight: bold;">Y</span>: Radial Vertical | 
-        <span style="color: #2e7d32; font-weight: bold;">Z</span>: Axial (Giro)
-    </div>
-    """, unsafe_allow_html=True)
-
 
 # Usamos columnas para centrar y controlar el tamaño
 col_img1, col_img2, col_img3 = st.columns([1, 1.5, 1]) 
