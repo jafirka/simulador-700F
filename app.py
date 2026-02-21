@@ -79,12 +79,17 @@ class SimuladorCentrifuga:
 
         M, I_global = np.zeros((6, 6)), np.zeros((3, 3))
         
-        for c in self.componentes.values():
+        for c in self.componentes.items():
             m_c = c["m"]
             p_c = np.array(c["pos"])
             # Inercia local (convertir a matriz 3x3 si es lista)
-            I_local = np.diag(c["I"]) if isinstance(c["I"], list) else np.array(c["I"])
-        
+            #I_local = np.diag(c["I"]) if isinstance(c["I"], list) else np.array(c["I"])
+
+
+            if I_local.ndim == 1: # Por si acaso alguien pasa [Ixx, Iyy, Izz]
+                I_local = np.diag(I_local)
+
+
             # Vector desde el CG global al CG del componente
             d = p_c - cg_global
         
@@ -92,21 +97,18 @@ class SimuladorCentrifuga:
             # I_global = sum( I_local + m * [ (d·d)diag(1) - (d ⊗ d) ] )
             term_steiner = m_c * (np.dot(d, d) * np.eye(3) - np.outer(d, d))
 
-            # TEST DE SIMETRÍA POR COMPONENTE
+            # Verificación de simetría real antes de sumar
             matriz_c = I_local + term_steiner
-            diff = np.max(np.abs(matriz_c - matriz_c.T))
-            if diff > 1e-5:
-                st.error(f"¡Componente '{nombre}' asimétrico! Diferencia: {diff}")
-                st.write("I_local:", I_local)
-                st.write("Steiner:", term_steiner)
-
+            if not np.allclose(matriz_c, matriz_c.T, atol=1e-5):
+                st.error(f"Asimetría detectada en componente: {nombre}")
+                # Esto nos dirá si es I_local o Steiner el culpable
+                st.write(f"Asimetría I_local: {np.max(np.abs(I_local - I_local.T))}")
+                st.write(f"Asimetría Steiner: {np.max(np.abs(term_steiner - term_steiner.T))}")
 
             I_global += (I_local + term_steiner)
 
         M[0:3, 0:3], M[3:6, 3:6] = np.eye(3) * m_total, I_global
 
-        # Añadimos una pequeña identidad para estabilidad numérica (1e-7 es seguro)
-        M += np.eye(6) * 1e-7
 
         K, C = np.zeros((6, 6)), np.zeros((6, 6))
         for damper in self.dampers:
