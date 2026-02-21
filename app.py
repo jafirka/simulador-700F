@@ -325,22 +325,37 @@ with col_img2:
     </div>
     """, unsafe_allow_html=True)
 
-import matplotlib.pyplot as plt
-import requests
-from io import BytesIO
-from PIL import Image
+Es normal que la segunda opción (la de matplotlib) sea más difícil de configurar, ya que requiere descargar la imagen a la memoria del servidor de Streamlit y procesarla antes de mostrarla. Además, si hay problemas de red en el servidor, puede fallar.
 
-# Función para cargar y poner ejes decorativos
-def mostrar_con_coordenadas(url):
-    response = requests.get(url)
-    img = Image.open(BytesIO(response.content))
-    fig, ax = plt.subplots()
-    ax.imshow(img)
-    # Dibujamos unas flechas en una esquina (ejemplo)
-    ax.arrow(50, 450, 100, 0, head_width=20, color='red', label='X') # Eje X
-    ax.arrow(50, 450, 0, -100, head_width=20, color='blue', label='Y') # Eje Y
-    ax.axis('off') # Quitamos los números de los bordes
-    return fig
+Si buscas algo profesional, vamos a mejorar la primera opción (la de las columnas) para que los ejes se vean como una leyenda técnica integrada. Esto es mucho más estable y no fallará aunque cambies de servidor.
+
+Aquí tienes el código optimizado. He ajustado los colores de la leyenda para que coincidan con los colores estándar de ingeniería que usas en tus gráficos (Tab:Blue, Tab:Orange, Tab:Green):
+
+Python
+# --- SECCIÓN: REFERENCIA VISUAL ---
+st.header("🧱 Configuración del Sistema")
+
+url_imagen_github = "https://raw.githubusercontent.com/jafirka/simulador-700F/main/Centrifuga.png"
+
+# Usamos columnas para centrar y controlar el tamaño
+col_img1, col_img2, col_img3 = st.columns([1, 1.5, 1]) 
+
+with col_img2:
+    # 1. Imagen con tamaño controlado
+    st.image(url_imagen_github, width=350)
+    
+    # 2. Ejes con estilo de ingeniería
+    # He usado los mismos colores que matplotlib usa por defecto
+    st.markdown("""
+    <div style="text-align: center; border: 1px solid #ddd; padding: 10px; border-radius: 8px; background-color: #f9f9f9;">
+        <p style="margin-bottom: 5px; font-weight: bold; color: #333;">Referencia de Ejes Dinámicos</p>
+        <span style="color: #1f77b4; font-weight: bold;">⬤ X (Horizontal)</span> &nbsp;&nbsp; 
+        <span style="color: #ff7f0e; font-weight: bold;">⬤ Y (Vertical)</span> &nbsp;&nbsp; 
+        <span style="color: #2ca02c; font-weight: bold;">⬤ Z (Eje Giro)</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+st.divider()
 
 # En tu app de Streamlit:
 # st.pyplot(mostrar_con_coordenadas(url_imagen_github))
