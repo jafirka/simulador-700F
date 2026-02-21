@@ -128,7 +128,6 @@ class SimuladorCentrifuga:
         # 1. Masa total
         if m_total <= 0:
             st.error("❌ Error Crítico: La masa total es cero o negativa.")
-        st.error(f"Masa total: {m_total:.2f} kg")
 
         # 2. Determinante de M (Corregido el error de sintaxis)
         det_M = np.linalg.det(M)
@@ -333,28 +332,6 @@ rpm_obj = st.sidebar.number_input("RPM nominales", value=1100)
 # --- SECCIÓN: PESTAÑAS ---
 st.header("🧱 Configuración del Sistema")
 
-# 1. Definir URL
-url_imagen_github = "https://raw.githubusercontent.com/jafirka/simulador-700F/main/Centrifuga.png"
-
-# Usamos columnas para centrar y controlar el tamaño
-col_img1, col_img2, col_img3 = st.columns([1, 1.5, 1]) 
-
-with col_img2:
-    # 1. Imagen con tamaño controlado
-    st.image(url_imagen_github, width=350)
-    
-    # 2. Ejes con estilo de ingeniería
-    # He usado los mismos colores que matplotlib usa por defecto
-    st.markdown("""
-    <div style="text-align: center; border: 1px solid #ddd; padding: 10px; border-radius: 8px; background-color: #f9f9f9;">
-        <p style="margin-bottom: 5px; font-weight: bold; color: #333;">Referencia de Ejes Dinámicos</p>
-        <span style="color: #1f77b4; font-weight: bold;">⬤ X (Horizontal)</span> &nbsp;&nbsp; 
-        <span style="color: #ff7f0e; font-weight: bold;">⬤ Y (Vertical)</span> &nbsp;&nbsp; 
-        <span style="color: #2ca02c; font-weight: bold;">⬤ Z (Eje Giro)</span>
-    </div>
-    """, unsafe_allow_html=True)
-
-st.divider()
 
 # Contenedor para los datos procesados en los tabs
 comp_editados = {} 
@@ -525,71 +502,83 @@ with tab_dampers:
 
 
 
-def dibujar_modelo_2d(modelo):
+ddef dibujar_modelo_2d(modelo):
     # Obtener datos actuales
     _, _, _, cg_global = modelo.armar_matrices()
     pos_sensor = modelo.pos_sensor
     ex = modelo.excitacion
     
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+    # Aumentar tamaño de fuente global de matplotlib
+    plt.rcParams.update({'font.size': 12})
     
-    # --- VISTA DE PLANTA (X-Y) ---
-    ax1.set_title("Vista de Planta (Radial X-Y)")
-    ax1.axhline(0, color='black', lw=1, alpha=0.3)
-    ax1.axvline(0, color='black', lw=1, alpha=0.3)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+    
+    # --- VISTA FRONTAL (X-Y) ---
+    ax1.set_title("Vista Frontal (X-Y)", fontsize=16, fontweight='bold')
+    
+    # Ejes tipo punto y raya en negrita
+    ax1.axhline(0, color='black', linestyle='-.', linewidth=2, alpha=0.8)
+    ax1.axvline(0, color='black', linestyle='-.', linewidth=2, alpha=0.8)
     
     # CG Global
-    ax1.scatter(cg_global[0], cg_global[1], color='purple', s=100, label='CG Global', marker='X')
+    ax1.scatter(cg_global[0], cg_global[1], color='purple', s=150, label='Centro de Gravedad (CG)', marker='X', zorder=5)
     
-    # Componentes
-    for nombre, c in modelo.componentes.items():
-        ax1.scatter(c['pos'][0], c['pos'][1], s=200, alpha=0.5, label=f'Masa: {nombre}')
+    # Componentes (Bancada, Cesto, etc)
+    colores_comp = ['#1f77b4', '#ff7f0e', '#2ca02c']
+    for i, (nombre, c) in enumerate(modelo.componentes.items()):
+        ax1.scatter(c['pos'][0], c['pos'][1], s=250, alpha=0.6, 
+                    label=f'Masa: {nombre.capitalize()}', color=colores_comp[i % 3])
     
     # Dampers
-    for d in modelo.dampers:
-        ax1.scatter(d.pos[0], d.pos[1], color='cyan', marker='d', s=80, label='Damper' if d == modelo.dampers[0] else "")
+    for i, d in enumerate(modelo.dampers):
+        label_d = 'Aisladores/Dampers' if i == 0 else ""
+        ax1.scatter(d.pos[0], d.pos[1], color='cyan', marker='d', s=100, edgecolors='black', label=label_d)
         
     # Sensor
-    ax1.scatter(pos_sensor[0], pos_sensor[1], color='lime', marker='*', s=150, label='Sensor')
+    ax1.scatter(pos_sensor[0], pos_sensor[1], color='lime', marker='*', s=250, edgecolors='black', label='Sensor Velocidad')
     
-    ax1.set_xlabel("X [m]")
-    ax1.set_ylabel("Y [m]")
-    ax1.legend(fontsize='small', loc='upper right')
-    ax1.grid(True, alpha=0.2)
+    ax1.set_xlabel("Eje X [m]", fontsize=13)
+    ax1.set_ylabel("Eje Y [m]", fontsize=13)
+    ax1.legend(loc='upper right', frameon=True, shadow=True, fontsize=10)
+    ax1.grid(True, linestyle=':', alpha=0.6)
     ax1.axis('equal')
 
-    # --- VISTA DE ALZADO (X-Z) ---
-    ax2.set_title("Vista de Alzado (Lateral X-Z)")
-    ax2.axvline(0, color='black', lw=1, alpha=0.3)
+    # --- VISTA DE PLANTA (X-Z) ---
+    ax2.set_title("Vista de Planta (X-Z)", fontsize=16, fontweight='bold')
+    
+    # Ejes tipo punto y raya en negrita
+    ax2.axhline(0, color='black', linestyle='-.', linewidth=2, alpha=0.8)
+    ax2.axvline(0, color='black', linestyle='-.', linewidth=2, alpha=0.8)
     
     # CG Global
-    ax2.scatter(cg_global[0], cg_global[2], color='purple', s=100, marker='X')
+    ax2.scatter(cg_global[0], cg_global[2], color='purple', s=150, marker='X', zorder=5)
     
     # Componentes
-    for nombre, c in modelo.componentes.items():
-        ax2.scatter(c['pos'][0], c['pos'][2], s=200, alpha=0.5)
+    for i, (nombre, c) in enumerate(modelo.componentes.items()):
+        ax2.scatter(c['pos'][0], c['pos'][2], s=250, alpha=0.6, color=colores_comp[i % 3])
         
     # Dampers
     for d in modelo.dampers:
-        ax2.scatter(d.pos[0], d.pos[2], color='cyan', marker='d', s=80)
+        ax2.scatter(d.pos[0], d.pos[2], color='cyan', marker='d', s=100, edgecolors='black')
         
     # Sensor
-    ax2.scatter(pos_sensor[0], pos_sensor[2], color='lime', marker='*', s=150)
+    ax2.scatter(pos_sensor[0], pos_sensor[2], color='lime', marker='*', s=250, edgecolors='black')
     
-    # Línea de excentricidad (Desbalanceo)
+    # Masa de Desbalanceo
     z_unb = ex['distancia_eje']
     e_unb = ex['e_unbalance']
-    ax2.plot([0, e_unb], [z_unb, z_unb], color='red', lw=3, label='Desbalanceo')
-    ax2.scatter(e_unb, z_unb, color='red', s=50)
+    if ex['m_unbalance'] > 0:
+        ax2.plot([0, e_unb], [z_unb, z_unb], color='red', linestyle='--', linewidth=2)
+        ax2.scatter(e_unb, z_unb, color='red', s=120, label='Masa Desbalanceo', zorder=6)
 
-    ax2.set_xlabel("X [m]")
-    ax2.set_ylabel("Z (Giro) [m]")
-    ax2.grid(True, alpha=0.2)
+    ax2.set_xlabel("Eje X [m]", fontsize=13)
+    ax2.set_ylabel("Eje Z (Altura/Giro) [m]", fontsize=13)
+    ax2.legend(loc='upper right', frameon=True, shadow=True, fontsize=10)
+    ax2.grid(True, linestyle=':', alpha=0.6)
     ax2.axis('equal')
 
     plt.tight_layout()
     return fig
-
 
 
 
