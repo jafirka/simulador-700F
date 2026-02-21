@@ -508,78 +508,77 @@ def dibujar_modelo_2d(modelo):
     pos_sensor = modelo.pos_sensor
     ex = modelo.excitacion
     
-    # Aumentar tamaño de fuente global de matplotlib
     plt.rcParams.update({'font.size': 12})
-    
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
     
     # --- VISTA FRONTAL (X-Y) ---
     ax1.set_title("Vista Frontal (X-Y)", fontsize=16, fontweight='bold')
-    
-    # Ejes tipo punto y raya en negrita
+    # Ejes "punto y raya" en negrita
     ax1.axhline(0, color='black', linestyle='-.', linewidth=2, alpha=0.8)
     ax1.axvline(0, color='black', linestyle='-.', linewidth=2, alpha=0.8)
     
-    # CG Global
+    # Dibujamos y asignamos labels
     ax1.scatter(cg_global[0], cg_global[1], color='purple', s=150, label='Centro de Gravedad (CG)', marker='X', zorder=5)
     
-    # Componentes (Bancada, Cesto, etc)
     colores_comp = ['#1f77b4', '#ff7f0e', '#2ca02c']
     for i, (nombre, c) in enumerate(modelo.componentes.items()):
         ax1.scatter(c['pos'][0], c['pos'][1], s=250, alpha=0.6, 
                     label=f'Masa: {nombre.capitalize()}', color=colores_comp[i % 3])
     
-    # Dampers
     for i, d in enumerate(modelo.dampers):
-        label_d = 'Aisladores/Dampers' if i == 0 else ""
+        label_d = 'Aisladores (Dampers)' if i == 0 else "" # Solo etiqueta el primero para no repetir
         ax1.scatter(d.pos[0], d.pos[1], color='cyan', marker='d', s=100, edgecolors='black', label=label_d)
         
-    # Sensor
     ax1.scatter(pos_sensor[0], pos_sensor[1], color='lime', marker='*', s=250, edgecolors='black', label='Sensor Velocidad')
     
-    ax1.set_xlabel("Eje X [m]", fontsize=13)
-    ax1.set_ylabel("Eje Y [m]", fontsize=13)
-    ax1.legend(loc='upper right', frameon=True, shadow=True, fontsize=10)
+    ax1.set_xlabel("Eje X [m]")
+    ax1.set_ylabel("Eje Y [m]")
     ax1.grid(True, linestyle=':', alpha=0.6)
     ax1.axis('equal')
 
     # --- VISTA DE PLANTA (X-Z) ---
     ax2.set_title("Vista de Planta (X-Z)", fontsize=16, fontweight='bold')
-    
-    # Ejes tipo punto y raya en negrita
     ax2.axhline(0, color='black', linestyle='-.', linewidth=2, alpha=0.8)
     ax2.axvline(0, color='black', linestyle='-.', linewidth=2, alpha=0.8)
     
-    # CG Global
+    # En el segundo gráfico NO ponemos labels para que no se dupliquen en la leyenda global
     ax2.scatter(cg_global[0], cg_global[2], color='purple', s=150, marker='X', zorder=5)
     
-    # Componentes
     for i, (nombre, c) in enumerate(modelo.componentes.items()):
         ax2.scatter(c['pos'][0], c['pos'][2], s=250, alpha=0.6, color=colores_comp[i % 3])
         
-    # Dampers
     for d in modelo.dampers:
         ax2.scatter(d.pos[0], d.pos[2], color='cyan', marker='d', s=100, edgecolors='black')
         
-    # Sensor
     ax2.scatter(pos_sensor[0], pos_sensor[2], color='lime', marker='*', s=250, edgecolors='black')
     
-    # Masa de Desbalanceo
+    # Masa de Desbalanceo (etiquetamos aquí porque no está en el otro gráfico)
     z_unb = ex['distancia_eje']
     e_unb = ex['e_unbalance']
     if ex['m_unbalance'] > 0:
         ax2.plot([0, e_unb], [z_unb, z_unb], color='red', linestyle='--', linewidth=2)
-        ax2.scatter(e_unb, z_unb, color='red', s=120, label='Masa Desbalanceo', zorder=6)
+        ax2.scatter(e_unb, z_unb, color='red', s=150, label='Masa Desbalanceo', zorder=6)
 
-    ax2.set_xlabel("Eje X [m]", fontsize=13)
-    ax2.set_ylabel("Eje Z (Altura/Giro) [m]", fontsize=13)
-    ax2.legend(loc='upper right', frameon=True, shadow=True, fontsize=10)
+    ax2.set_xlabel("Eje X [m]")
+    ax2.set_ylabel("Eje Z (Altura) [m]")
     ax2.grid(True, linestyle=':', alpha=0.6)
     ax2.axis('equal')
 
-    plt.tight_layout()
-    return fig
+    # --- LEYENDA UNIFICADA ---
+    # Capturamos los labels de ambos ejes y los combinamos sin repetir
+    handles, labels = [], []
+    for ax in [ax1, ax2]:
+        for h, l in zip(*ax.get_legend_handles_labels()):
+            if l not in labels:
+                handles.append(h)
+                labels.append(l)
+    
+    # Colocamos la leyenda centrada debajo de los gráficos
+    fig.legend(handles, labels, loc='lower center', ncol=3, bbox_to_anchor=(0.5, -0.05), 
+               frameon=True, shadow=True, fontsize=11)
 
+    plt.tight_layout(rect=[0, 0.05, 1, 1]) # Ajustamos espacio para que quepa la leyenda
+    return fig
 
 
 
