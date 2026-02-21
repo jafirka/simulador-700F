@@ -261,8 +261,8 @@ if 'configuracion_sistema' not in st.session_state:
 
 if 'dampers_prop_data' not in st.session_state:
     st.session_state.dampers_prop_data = [
-        {"Tipo": "Ref_1", "kx": 1.5e6, "ky": 2.0e6, "kz": 1.5e6, "cx": 2.5e4, "cy": 3.5e4, "cz": 2e4},
-        {"Tipo": "Ref_2", "kx": 1.0e6,  "ky": 1.5e6,  "kz": 1.0e6, "cx": 2.5e4, "cy": 3.5e4, "cz": 2e4}
+        {"Tipo": "Ref_1", "kx": 1.5e6, "ky": 2.0e6, "kz": 1.5e6, "cx": 5.5e4, "cy": 5.5e4, "cz": 5e4},
+        {"Tipo": "Ref_2", "kx": 1.0e6,  "ky": 1.5e6,  "kz": 1.0e6, "cx": 5.5e4, "cy": 5.5e4, "cz": 5e4}
     ]
 
 if 'dampers_pos_data' not in st.session_state:
