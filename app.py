@@ -500,124 +500,8 @@ with tab_dampers:
                 })
 
 
+
 def dibujar_modelo_2d(modelo):
-    # Obtener datos del modelo
-    _, _, _, cg_global = modelo.armar_matrices()
-    pos_sensor = modelo.pos_sensor
-    ex = modelo.excitacion
-    
-    # Crear subplots
-    fig = make_subplots(
-        rows=1, cols=2,
-        subplot_titles=("<b>Vista Frontal (X-Y)</b>", "<b>Vista de Planta (X-Z)</b>"),
-        horizontal_spacing=0.15
-    )
-
-    nombres_vistos = set()
-
-    def agregar_traza(trace, row, col):
-        if trace.name not in nombres_vistos:
-            trace.showlegend = True
-            nombres_vistos.add(trace.name)
-        else:
-            trace.showlegend = False
-        fig.add_trace(trace, row=row, col=col)
-
-    # --- 1. SOMBREADO GRIS ENTRE DAMPERS (Base de apoyo) ---
-    if len(modelo.dampers) >= 3:
-        # Extraemos coordenadas para el polígono en Vista de Planta (X-Z)
-        d_x = [d.pos[0] for d in modelo.dampers]
-        d_z = [d.pos[2] for d in modelo.dampers]
-        
-        # Para cerrar el polígono correctamente, Plotly requiere el primer punto al final
-        # Ordenamos los puntos de forma convexa o según su disposición para evitar cruces
-        from scipy.spatial import ConvexHull
-        puntos = np.column_stack((d_x, d_z))
-        hull = ConvexHull(puntos)
-        idx_orden = np.append(hull.vertices, hull.vertices[0])
-        
-        fig.add_trace(go.Scatter(
-            x=puntos[idx_orden, 0], y=puntos[idx_orden, 1],
-            fill="toself",
-            fillcolor="rgba(128, 128, 128, 0.2)", # Gris suave transparente
-            line=dict(color="rgba(128, 128, 128, 0.5)", width=1),
-            name="Área de Apoyo",
-            hoverinfo='skip'
-        ), row=1, col=2)
-
-    # --- 2. CENTRO DE GRAVEDAD GLOBAL (ÚNICO CG) ---
-    for r, c, y_val in [(1, 1, cg_global[1]), (1, 2, cg_global[2])]:
-        agregar_traza(go.Scatter(
-            x=[cg_global[0]], y=[y_val],
-            mode='markers', name='Centro de Gravedad (Global)',
-            marker=dict(symbol='x', size=14, color='purple', line=dict(width=2))
-        ), r, c)
-
-    # --- 3. DAMPERS (Aisladores) ---
-    for i, d in enumerate(modelo.dampers):
-        for r, c, y_val in [(1, 1, d.pos[1]), (1, 2, d.pos[2])]:
-            agregar_traza(go.Scatter(
-                x=[d.pos[0]], y=[y_val],
-                mode='markers', name='Aisladores (Dampers)',
-                marker=dict(symbol='diamond', size=10, color='cyan', line=dict(width=1, color='black'))
-            ), r, c)
-
-    # --- 4. SENSOR ---
-    for r, c, y_val in [(1, 1, pos_sensor[1]), (1, 2, pos_sensor[2])]:
-        agregar_traza(go.Scatter(
-            x=[pos_sensor[0]], y=[y_val],
-            mode='markers', name='Sensor Velocidad',
-            marker=dict(symbol='star', size=15, color='lime', line=dict(width=1, color='black'))
-        ), r, c)
-
-    # --- 5. MASA DESBALANCEO (Solo en Vista Planta X-Z) ---
-    if ex['m_unbalance'] > 0:
-        z_unb = ex['distancia_eje']
-        e_unb = ex['e_unbalance']
-        fig.add_trace(go.Scatter(
-            x=[0, e_unb], y=[z_unb, z_unb],
-            mode='lines', name='Radio Desbalanceo',
-            line=dict(color='red', width=2, dash='dash')
-        ), row=1, col=2)
-        fig.add_trace(go.Scatter(
-            x=[e_unb], y=[z_unb],
-            mode='markers', name='Masa Desbalanceo',
-            marker=dict(size=12, color='red')
-        ), row=1, col=2)
-
-    # --- CONFIGURACIÓN DE ESTILO ---
-    fig.update_layout(
-        font=dict(size=14),
-        legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
-        height=550,
-        plot_bgcolor='white'
-    )
-
-    for i in range(1, 3):
-        fig.update_xaxes(
-            title_text="<b>Eje X [m]</b>",
-            showgrid=True, gridcolor='whitesmoke',
-            zeroline=True, zerolinewidth=3, zerolinecolor='black',
-            row=1, col=i
-        )
-        eje_y_tit = "<b>Eje Y [m]</b>" if i == 1 else "<b>Eje Z (Altura) [m]</b>"
-        fig.update_yaxes(
-            title_text=eje_y_tit,
-            showgrid=True, gridcolor='whitesmoke',
-            zeroline=True, zerolinewidth=3, zerolinecolor='black',
-            row=1, col=i
-        )
-
-    return fig
-
-
-
-
-
-
-
-
-def dibujar_modelo_2dd(modelo):
     # 1. Obtener datos del modelo
     _, _, _, cg_global = modelo.armar_matrices()
     pos_sensor = modelo.pos_sensor
@@ -825,11 +709,11 @@ d_idx = int(seleccion.split(":")[0])
 # --- 4. EJECUTAR AMBAS SIMULACIONES ---
 modelo_base = SimuladorCentrifuga(config_base)
 
-st.subheader("🌐 Visualización 3D del Modelo")
+st.subheader("🌐 Visualización 2D del Modelo")
 
 # Asegúrate de que el modelo_base ya esté inicializado antes de llamar a dibujar_modelo_3d
 if 'modelo_base' in locals() or 'modelo_base' in globals(): # Comprueba si modelo_base existe
-    fig_2d = dibujar_modelo_2dd(modelo_base)
+    fig_2d = dibujar_modelo_2d(modelo_base)
     st.plotly_chart(fig_2d, use_container_width=True)
 else:
     st.warning("Carga una configuración o ajusta los parámetros para ver el modelo 3D.")
