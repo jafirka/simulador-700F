@@ -306,6 +306,9 @@ rpm_obj = st.sidebar.number_input("RPM nominales", value=1100)
 # --- SECCIÓN: PESTAÑAS ---
 st.header("🧱 Configuración del Sistema")
 
+# URL Corregida (Versión RAW)
+url_imagen_github = "https://raw.githubusercontent.com/jafirka/simulador-700F/main/Centrifuga.png"
+
 # Contenedor para los datos procesados en los tabs
 comp_editados = {} 
 tab_comp, tab_dampers, tab_config = st.tabs(["📦 Componentes Masas/Inercias", "🛡️ Configuración de Dampers", "⚙️ Configuración del Sistema"])
@@ -785,10 +788,10 @@ with col_concl1:
     st.write("### 🚨 Puntos Críticos (Resonancia)")
     # Mostramos la primera frecuencia natural (Modo 1)
     st.write(f"**Caso Base (Modo 1):** {f_res_rpm[0]:.0f} RPM")
-    st.write(f"**Caso Base (Modo 2):** {f_res_rpm[0]:.0f} RPM")
-    st.write(f"**Caso Base (Modo 3):** {f_res_rpm[0]:.0f} RPM")
-    st.write(f"**Caso Base (Modo 4):** {f_res_rpm[0]:.0f} RPM")
-    st.write(f"**Caso Base (Modo 5):** {f_res_rpm[0]:.0f} RPM")
+    st.write(f"**Caso Base (Modo 2):** {f_res_rpm[1]:.0f} RPM")
+    st.write(f"**Caso Base (Modo 3):** {f_res_rpm[2]:.0f} RPM")
+    st.write(f"**Caso Base (Modo 4):** {f_res_rpm[3]:.0f} RPM")
+    st.write(f"**Caso Base (Modo 5):** {f_res_rpm[4]:.0f} RPM")
     st.write(f"**Caso Base (Modo 6):** {f_res_rpm[5]:.0f} RPM")
 
     
