@@ -35,9 +35,6 @@ class Damper:
 class SimuladorCentrifuga:
     def __init__(self, config):
         self.pos_sensor = np.array(config["sensor"]["pos_sensor"])
-        self.eje_horizontal = config['eje_horizontal'].lower()
-        # --- Parámetros de la Placa ---
-
 
         # --- Componentes ---
         self.componentes = {
@@ -592,7 +589,6 @@ st.sidebar.header("💾 Gestión de Archivos")
 datos_a_exportar = {
     # Agrupamos todo lo referente a la física global del sistema
     "configuracion_sistema": {
-        "eje_horizontal": st.session_state.configuracion_sistema["eje_horizontal"],
         "distancia_eje": st.session_state.configuracion_sistema["distancia_eje"],
         "diametro_cesto": st.session_state.configuracion_sistema["diametro_cesto"], 
         "sensor_pos": st.session_state.configuracion_sistema["sensor_pos"]
