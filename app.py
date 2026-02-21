@@ -618,14 +618,14 @@ def dibujar_modelo_2d(modelo):
 
 
 def dibujar_modelo_2dd(modelo):
-    # Obtener datos del modelo
+    # 1. Obtener datos del modelo
     _, _, _, cg_global = modelo.armar_matrices()
     pos_sensor = modelo.pos_sensor
     ex = modelo.excitacion
     
-    # Diámetro del cesto (convertido a metros para la escala del gráfico)
-    diametro_m = modelo.configuracion_sistema.get("diametro_cesto", 1250) / 1000
-    radio_m = diametro_m / 2
+    # Obtenemos el radio desde la excentricidad guardada en la excitación
+    radio_m = ex.get('e_unbalance', 0.625) 
+    diametro_mm = radio_m * 2 * 1000
 
     fig = make_subplots(
         rows=1, cols=2,
@@ -642,14 +642,12 @@ def dibujar_modelo_2dd(modelo):
             trace.showlegend = False
         fig.add_trace(trace, row=row, col=col)
 
-    # --- 1. ÁREA GRIS DE DAMPERS Y RECTÁNGULO DEL CESTO (Vista de Planta X-Z) ---
+    # --- 1. ÁREA GRIS DE DAMPERS (Sombreado) ---
     if len(modelo.dampers) >= 2:
         d_x = [d.pos[0] for d in modelo.dampers]
         d_z = [d.pos[2] for d in modelo.dampers]
-        z_min_dampers = max(d_z) # El punto más "alto" de los dampers en Z
-        z_masa = ex['distancia_eje'] # Donde está la masa desbalanceada
-
-        # Sombreado Aisladores (Dampers)
+        
+        # Sombreado Aisladores (Dampers) usando ConvexHull para el área de apoyo
         from scipy.spatial import ConvexHull
         puntos = np.column_stack((d_x, d_z))
         hull = ConvexHull(puntos)
@@ -659,32 +657,32 @@ def dibujar_modelo_2dd(modelo):
             x=puntos[idx_orden, 0], y=puntos[idx_orden, 1],
             fill="toself", fillcolor="rgba(128, 128, 128, 0.2)",
             line=dict(color="rgba(128, 128, 128, 0.5)", width=1),
-            name="Área de Apoyo", showlegend=True, hoverinfo='skip'
+            name="Área de Apoyo (Base)", showlegend=True, hoverinfo='skip'
         ), row=1, col=2)
 
-        # RECTÁNGULO DEL CESTO: Desde el plano de dampers hasta la masa
-        # Coordenadas: [X_izq, X_der, X_der, X_izq, X_izq]
-        # Coordenadas: [Z_inicio, Z_inicio, Z_fin, Z_fin, Z_inicio]
+        # --- 2. RECTÁNGULO DEL CESTO ---
+        z_base_cesto = max(d_z) # Punto superior de los dampers
+        z_masa = ex['distancia_eje'] # Altura de la carga
+
         fig.add_trace(go.Scatter(
             x=[-radio_m, radio_m, radio_m, -radio_m, -radio_m],
-            y=[z_min_dampers, z_min_dampers, z_masa, z_masa, z_min_dampers],
+            y=[z_base_cesto, z_base_cesto, z_masa, z_masa, z_base_cesto],
             fill="toself",
             fillcolor="rgba(100, 100, 100, 0.1)",
             line=dict(color="rgba(0, 0, 0, 0.3)", width=2, dash='dot'),
-            name=f"Cuerpo Cesto (Ø {modelo.configuracion_sistema['diametro_cesto']}mm)",
+            name=f"Cuerpo Cesto (Ø {diametro_mm:.0f}mm)",
             showlegend=True, hoverinfo='skip'
         ), row=1, col=2)
 
-    # --- 2. CENTRO DE GRAVEDAD GLOBAL ---
+    # --- 3. CENTRO DE GRAVEDAD GLOBAL (Único) ---
     for r, c, y_val in [(1, 1, cg_global[1]), (1, 2, cg_global[2])]:
         agregar_traza(go.Scatter(
             x=[cg_global[0]], y=[y_val],
-            mode='markers', name='Centro de Gravedad (Global)',
+            mode='markers', name='CG Global',
             marker=dict(symbol='x', size=14, color='purple', line=dict(width=2))
         ), r, c)
 
-    # --- 3. DAMPERS, SENSOR Y MASA (Resto de elementos igual) ---
-    # ... (Mantenemos la lógica de marcadores de Dampers y Sensor)
+    # --- 4. DAMPERS, SENSOR Y MASA ---
     for d in modelo.dampers:
         for r, c, y_val in [(1, 1, d.pos[1]), (1, 2, d.pos[2])]:
             agregar_traza(go.Scatter(
@@ -710,13 +708,18 @@ def dibujar_modelo_2dd(modelo):
             marker=dict(size=12, color='red')
         ), row=1, col=2)
 
-    # Configuración final de ejes
+    # Configuración de Layout y Ejes Marcados
     fig.update_layout(
         font=dict(size=14),
         legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
         height=600, plot_bgcolor='white'
     )
-    # ... (Configuración de update_xaxes y update_yaxes con zeroline gruesa)
+
+    for i in range(1, 3):
+        fig.update_xaxes(title_text="<b>Eje X [m]</b>", zeroline=True, zerolinewidth=3, zerolinecolor='black', row=1, col=i)
+        tit_y = "<b>Eje Y [m]</b>" if i == 1 else "<b>Eje Z (Altura) [m]</b>"
+        fig.update_yaxes(title_text=tit_y, zeroline=True, zerolinewidth=3, zerolinecolor='black', row=1, col=i)
+
     return fig
 
 
