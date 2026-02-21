@@ -4,7 +4,7 @@ from motor_fisico import *
 # 3️⃣ ENTORNO VISUAL (INTERFAZ)
 # ==========================================
 
-
+def inicializar_estado_del_simulador():
     # --- INICIALIZADOR DE DATOS (Fuente de Verdad Única) ---
     if 'componentes_data' not in st.session_state:
         st.session_state.componentes_data = {
