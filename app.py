@@ -91,6 +91,16 @@ class SimuladorCentrifuga:
             # Teorema de Steiner (Ejes Paralelos) en forma matricial
             # I_global = sum( I_local + m * [ (d·d)diag(1) - (d ⊗ d) ] )
             term_steiner = m_c * (np.dot(d, d) * np.eye(3) - np.outer(d, d))
+
+            # TEST DE SIMETRÍA POR COMPONENTE
+            matriz_c = I_local + term_steiner
+            diff = np.max(np.abs(matriz_c - matriz_c.T))
+            if diff > 1e-5:
+                st.error(f"¡Componente '{nombre}' asimétrico! Diferencia: {diff}")
+                st.write("I_local:", I_local)
+                st.write("Steiner:", term_steiner)
+
+
             I_global += (I_local + term_steiner)
 
         M[0:3, 0:3], M[3:6, 3:6] = np.eye(3) * m_total, I_global
