@@ -90,7 +90,7 @@ class SimuladorCentrifuga:
 
         M, I_global = np.zeros((6, 6)), np.zeros((3, 3))
         
-        for c in self.componentes.items():
+        for nombre, c in self.componentes.items():
             m_c = c["m"]
             p_c = np.array(c["pos"])
             # Inercia local (convertir a matriz 3x3 si es lista)
