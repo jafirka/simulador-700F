@@ -76,14 +76,14 @@ class SimuladorCentrifuga:
     def armar_matrices(self):
 
         if not self.componentes:
-                st.error("No hay componentes cargados en el simulador.")
-                return np.zeros((6,6)), np.zeros((6,6)), np.zeros((6,6)), np.array([0,0,0])
+            st.error("No hay componentes cargados en el simulador.")
+            return np.zeros((6,6)), np.zeros((6,6)), np.zeros((6,6)), np.array([0,0,0])
 
-            # 2. Validación de contenido (evita el TypeError)
-            componentes_validos = {k: v for k, v in self.componentes.items() if v is not None}
-            
-            if len(componentes_validos) < len(self.componentes):
-                st.warning(f"Se detectaron {len(self.componentes) - len(componentes_validos)} componentes nulos.")
+        # 2. Validación de contenido (evita el TypeError)
+        componentes_validos = {k: v for k, v in self.componentes.items() if v is not None}
+        
+        if len(componentes_validos) < len(self.componentes):
+            st.warning(f"Se detectaron {len(self.componentes) - len(componentes_validos)} componentes nulos.")
 
         m_total = sum(c["m"] for c in self.componentes.values())
         cg_global = sum(c["m"] * np.array(c["pos"]) for c in self.componentes.values()) / m_total
