@@ -96,10 +96,11 @@ class SimuladorCentrifuga:
             # Inercia local (convertir a matriz 3x3 si es lista)
             #I_local = np.diag(c["I"]) if isinstance(c["I"], list) else np.array(c["I"])
 
+            I_local = np.array(c["I"], dtype=float)
 
-            if I_local.ndim == 1: # Por si acaso alguien pasa [Ixx, Iyy, Izz]
-                I_local = np.diag(I_local)
-
+            if I_local.shape != (3, 3):
+                st.error(f"Error en '{nombre}': La inercia debe ser matriz 3x3. Recibido: {I_local.shape}")
+                continue
 
             # Vector desde el CG global al CG del componente
             d = p_c - cg_global
