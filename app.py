@@ -184,6 +184,7 @@ def ejecutar_barrido_rpm(modelo, rpm_range, d_idx):
         F0 = ex['m_unbalance'] * ex['e_unbalance'] * w**2
         # 2. Inicialización del vector de excitación F (6 DOFs: Fx, Fy, Fz, Mx, My, Mz)
         F = np.zeros(6, dtype=complex)
+        K_estabilizada = K * (1 + 0.02j)
 
         # 3. Lógica de excitación según el eje de rotación
         if eje_horizontal == 'x':
@@ -214,7 +215,7 @@ def ejecutar_barrido_rpm(modelo, rpm_range, d_idx):
 
 
         # Resolver el sistema: Z * X = F
-        Z = -w**2 * M + 1j*w * C + K
+        Z = -w**2 * M + 1j*w * C + K_estabilizada
         X = linalg.solve(Z, F)
         # --- CG: aceleración y velocidad ---
         for i, eje in enumerate(["x", "y", "z"]):
