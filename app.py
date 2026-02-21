@@ -184,6 +184,7 @@ def ejecutar_barrido_rpm(modelo, rpm_range, d_idx):
             F[3] = (F0 * 1j) * arm  # Momento en X
             F[4] = -F0 * arm        # Momento en Y
 
+
         # Resolver el sistema: Z * X = F
         Z = -w**2 * M + 1j*w * C + K
         X = linalg.solve(Z, F)
