@@ -523,7 +523,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-t.subheader("📋 Análisis de Cargas Reales en Apoyos")
+st.subheader("📋 Análisis de Cargas Reales en Apoyos")
 
 df_cargas = calcular_tabla_fuerzas(modelo_base, rpm_obj)
 
