@@ -128,28 +128,27 @@ class SimuladorCentrifuga:
             K += T.T @ damper.get_matriz_K() @ T
             C += T.T @ damper.get_matriz_C() @ T
 
-        st.write("Verifica el determinante:— Si es cero o muy pequeño, tu sistema de masa no es físicamente posible.")
-        st.write(f"Determinante"np.linalg.det(M))
-        # --- VALIDACIÓN DE SALUD MATRICIAL ---
-        # 1. Verificar que la masa total sea positiva
+        # 1. Masa total
         if m_total <= 0:
             st.error("❌ Error Crítico: La masa total es cero o negativa.")
 
-        # 2. Verificar si la matriz de Inercia es Definida Positiva
-        # (Si no lo es, los autovalores serán imaginarios y el sistema 'desaparece')
+        # 2. Determinante de M (Corregido el error de sintaxis)
+        det_M = np.linalg.det(M)
+        if abs(det_M) < 1e-9:
+            st.warning(f"⚠️ Determinante de M muy bajo ({det_M:.2e}): El sistema es físicamente imposible o singular.")
+
+        # 3. Inercia Definida Positiva (Cholesky)
         try:
             np.linalg.cholesky(I_global) 
         except np.linalg.LinAlgError:
-            st.error("🚨 ¡Inestabilidad Numérica! La matriz de inercia global no es válida.")
-            st.warning(f"Esto ocurre porque el movimiento de 1mm cambió el CG de forma que el término de Steiner superó a la inercia local. Revisa las posiciones de las masas.")
-            # Mostramos los autovalores para diagnóstico
+            st.error("🚨 ¡Inestabilidad Numérica en I_global!")
             evs = np.linalg.eigvals(I_global)
-            st.write("Autovalores de I_global:", evs)
+            st.write("Autovalores de I_global (deben ser todos > 0):", evs)
 
-        # 3. Verificar el condicionamiento (si es muy alto, linalg.solve fallará)
+        # 4. Condicionamiento
         cond_M = np.linalg.cond(M)
         if cond_M > 1e12:
-            st.warning(f"⚠️ Matriz de Masa mal condicionada (Cond: {cond_M:.2e}). Resultados poco fiables.")
+            st.warning(f"⚠️ Matriz de Masa mal condicionada (Cond: {cond_M:.2e}).")
 
         return M, K, C, cg_global
 
