@@ -223,30 +223,30 @@ def ejecutar_barrido_rpm(modelo, rpm_range, d_idx):
 # --- INICIALIZADOR DE DATOS (Fuente de Verdad Única) ---
 if 'componentes_data' not in st.session_state:
     st.session_state.componentes_data = {
-        "bancada": {"m": 3542.0, "pos": [-1.0, 0.0, 0.0], "I": [[9235.0, 0, 0], [0, 5690.0, 0], [0, 0, 3779.0]]},
-        "cesto": {"m": 1980.0, "pos": [0.0, 1.0, 0.5], "I": [[178.0, 0, 0], [0, 392.0, 0], [0, 0, 312.0]]}
+        "bancada": {"m": 3542.0, "pos": [0.0, 0.0, -0.5], "I": [[9235.0, 0, 0], [0, 5690.0, 0], [0, 0, 3779.0]]},
+        "cesto": {"m": 980.0, "pos": [0.0, 0.0, 0.5], "I": [[178.0, 0, 0], [0, 392.0, 0], [0, 0, 312.0]]}
     }
 
 if 'configuracion_sistema' not in st.session_state:
     st.session_state.configuracion_sistema = {
         "eje_horizontal": "z",
-        "distancia_eje": 0.8,
+        "distancia_eje": 0.3,
         "sensor_pos": [0.0, 0.2, 0.0],
         "diametro_cesto": 1250  # Valor por defecto (mm)
     }
 
 if 'dampers_prop_data' not in st.session_state:
     st.session_state.dampers_prop_data = [
-        {"Tipo": "Ref_1", "kx": 1.32e6, "ky": 1.32e6, "kz": 1.6e6, "cx": 2.5e4, "cy": 2.5e4, "cz": 5e4},
-        {"Tipo": "Ref_2", "kx": 1.0e6,  "ky": 1.0e6,  "kz": 1.3e6, "cx": 2.5e4, "cy": 2.5e4, "cz": 5e4}
+        {"Tipo": "Ref_1", "kx": 1.5e6, "ky": 2.0e6, "kz": 1.5e6, "cx": 2.5e4, "cy": 3.5e4, "cz": 2e4},
+        {"Tipo": "Ref_2", "kx": 1.0e6,  "ky": 1.5e6,  "kz": 1.0e6, "cx": 2.5e4, "cy": 3.5e4, "cz": 2e4}
     ]
 
 if 'dampers_pos_data' not in st.session_state:
     st.session_state.dampers_pos_data = [
-        {"Nombre": "D1 (Motor)", "X": -0.8, "Y": 0.84, "Z": 1.0, "Tipo": "Ref_1"},
-        {"Nombre": "D2 (Motor)", "X": -0.8, "Y": -0.84, "Z": 1.0, "Tipo": "Ref_1"},
-        {"Nombre": "D3 (Front)", "X": -0.8, "Y": 0.84, "Z": -1.0, "Tipo": "Ref_2"},
-        {"Nombre": "D4 (Front)", "X": -0.8, "Y": -0.84, "Z": -1.0, "Tipo": "Ref_2"},
+        {"Nombre": "D1 (Motor)", "X": -1.4, "Y": -0.84, "Z": -0.2, "Tipo": "Ref_1"},
+        {"Nombre": "D2 (Motor)", "X": 1.4, "Y":  -0.84, "Z": -0.2, "Tipo": "Ref_1"},
+        {"Nombre": "D3 (Front)", "X": -1.4, "Y": -0.84, "Z": -2.0, "Tipo": "Ref_2"},
+        {"Nombre": "D4 (Front)", "X": 1.4, "Y":  -0.84, "Z": -2.0, "Tipo": "Ref_2"},
     ]
 
 
