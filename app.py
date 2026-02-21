@@ -33,7 +33,6 @@ def inicializar_estado_del_simulador():
             {"Nombre": "D4 (Front)", "X": 1.4, "Y":  -0.4, "Z": -2.0, "Tipo": "Ref_2"},
         ]
 
-
 # --- 1. INTERFAZ DE STREAMLIT ---
 st.set_page_config(layout="wide")
 
@@ -46,46 +45,6 @@ st.markdown("Modifica los valores en la barra lateral para ver el impacto en las
 # --- BARRA LATERAL PARA MODIFICAR VALORES ---
 st.sidebar.header("Parámetros de cálculos")
 
-# --- LOGICA DE CARGA MEJORADA ---
-archivo_subido = st.sidebar.file_uploader("📂 Importar archivo de configuración (.json)", type=["json"])
-
-if archivo_subido is not None:
-    # Creamos una marca única para el archivo basada en su nombre o tamaño
-    file_id = f"{archivo_subido.name}_{archivo_subido.size}"
-    
-    # SOLO procesamos si el archivo es diferente al que ya procesamos
-    if st.session_state.get("last_loaded_file") != file_id:
-        try:
-            datos_preset = json.load(archivo_subido)
-            
-            # Actualizamos los componentes (bancada, cesto)
-            if "componentes_data" in datos_preset:
-                for nombre, data in datos_preset["componentes_data"].items():
-                    if nombre in st.session_state.componentes_data:
-                        st.session_state.componentes_data[nombre].update(data)            
-            if "configuracion_sistema" in datos_preset:
-                st.session_state.configuracion_sistema.update(datos_preset["configuracion_sistema"])
-            # 3. ACTUALIZACIÓN DE DAMPERS (Lo que faltaba añadir)
-            if "dampers_prop_data" in datos_preset:
-                st.session_state.dampers_prop_data = datos_preset["dampers_prop_data"]
-                # BORRAMOS LA KEY DEL EDITOR PARA FORZAR RECARGA
-                if "editor_tipos_nombres" in st.session_state:
-                    del st.session_state["editor_tipos_nombres"]
-            
-            if "dampers_pos_data" in datos_preset:
-                st.session_state.dampers_pos_data = datos_preset["dampers_pos_data"]
-                if "pos_dampers_editor_v2" in st.session_state:
-                    del st.session_state["pos_dampers_editor_v2"]
-
-            
-            # Guardamos la marca de que este archivo ya se procesó
-            st.session_state["last_loaded_file"] = file_id
-            
-            st.sidebar.success("✅ Configuración aplicada")
-            st.rerun() 
-            
-        except Exception as e:
-            st.sidebar.error(f"Error al procesar: {e}")
 
 # Ejemplo de cómo modificar la masa de desbalanceo y RPM
 m_unbalance = st.sidebar.slider("Masa de Desbalanceo (kg)", 0.1, 8.0, 1.6)
@@ -397,6 +356,53 @@ config_base = {
     },
     "tipos_dampers": pd.DataFrame(st.session_state.dampers_prop_data).set_index("Tipo").to_dict('index')
 }
+
+
+
+
+st.sidebar.divider()
+st.sidebar.header("💾 Gestión de Archivos")
+
+# --- 1. SECCIÓN DE IMPORTAR (Cargar) ---
+archivo_subido = st.sidebar.file_uploader("📂 Subir configuración (.json)", type=["json"])
+
+if archivo_subido is not None:
+    # Agregamos el botón para confirmar la carga
+    if st.sidebar.button("📥 Aplicar configuración del archivo"):
+        try:
+            datos_preset = json.load(archivo_subido)
+            
+            # Actualizamos los componentes
+            if "componentes_data" in datos_preset:
+                for nombre, data in datos_preset["componentes_data"].items():
+                    if nombre in st.session_state.componentes_data:
+                        st.session_state.componentes_data[nombre].update(data)            
+            
+            if "configuracion_sistema" in datos_preset:
+                st.session_state.configuracion_sistema.update(datos_preset["configuracion_sistema"])
+            
+            # Actualización de Dampers
+            if "dampers_prop_data" in datos_preset:
+                st.session_state.dampers_prop_data = datos_preset["dampers_prop_data"]
+                if "editor_tipos_nombres" in st.session_state:
+                    del st.session_state["editor_tipos_nombres"]
+            
+            if "dampers_pos_data" in datos_preset:
+                st.session_state.dampers_pos_data = datos_preset["dampers_pos_data"]
+                if "pos_dampers_editor_v2" in st.session_state:
+                    del st.session_state["pos_dampers_editor_v2"]
+
+            st.sidebar.success("✅ Datos cargados correctamente")
+            st.rerun() 
+            
+        except Exception as e:
+            st.sidebar.error(f"Error al procesar el archivo: {e}")
+
+st.sidebar.write("---") # Separador visual interno
+
+
+
+
 
 # 3️⃣ GUARDADO ARCHIVO
 
