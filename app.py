@@ -12,13 +12,13 @@ def inicializar_estado_del_simulador():
     # --- INICIALIZADOR DE DATOS (Fuente de Verdad Única) ---
     if 'componentes_data' not in st.session_state:
         st.session_state.componentes_data = {
-            "bancada": {"m": 10542.0, "pos": [0.0, 0.0, -1.0], "I": [[9235.0, 0.0, 0.0], [0.0, 5690.0, 0.0], [0.0, 0.0, 3779.0]]},
-            "cesto": {"m": 980.0, "pos": [0.0, 0.0, 0.0], "I": [[312.0, 0.0, 0.0], [0.0, 312.0, 0.0], [0.0, 0.0, 312.0]]}
+            "bancada": {"m": 1000.0, "pos": [0.0, 0.0, 0.0], "I": [[1000.0, 0.0, 0.0], [0.0, 1000.0, 0.0], [0.0, 0.0, 1000.0]]},
+            "cesto": {"m": 1000.0, "pos": [0.0, 0.0, 0.0], "I": [[1000.0, 0.0, 0.0], [0.0, 1000.0, 0.0], [0.0, 0.0, 1000.0]]}
         }
 
     if 'configuracion_sistema' not in st.session_state:
         st.session_state.configuracion_sistema = {
-            "distancia_eje": 0.3,
+            "distancia_eje": 0.0,
             "sensor_pos": [-0.4, 0.2, 0.0],
             "diametro_cesto": 1250  # Valor por defecto (mm)
         }
@@ -31,10 +31,10 @@ def inicializar_estado_del_simulador():
 
     if 'dampers_pos_data' not in st.session_state:
         st.session_state.dampers_pos_data = [
-            {"Nombre": "D1 (Motor)", "X": -1.4, "Y": -0.4, "Z": -0.2, "Tipo": "Ref_1"},
-            {"Nombre": "D2 (Motor)", "X": 1.4, "Y":  -0.4, "Z": -0.2, "Tipo": "Ref_1"},
-            {"Nombre": "D3 (Front)", "X": -1.4, "Y": -0.4, "Z": -2.0, "Tipo": "Ref_2"},
-            {"Nombre": "D4 (Front)", "X": 1.4, "Y":  -0.4, "Z": -2.0, "Tipo": "Ref_2"},
+            {"Nombre": "D1 (frobtal)", "X": -1.4, "Y": -0.4, "Z": 1.4, "Tipo": "Ref_1"},
+            {"Nombre": "D2 (frontal)", "X": 1.4, "Y":  -0.4, "Z": 1.4, "Tipo": "Ref_1"},
+            {"Nombre": "D3 (rear)", "X": -1.4, "Y": -0.4, "Z": -1.4, "Tipo": "Ref_2"},
+            {"Nombre": "D4 (rear)", "X": 1.4, "Y":  -0.4, "Z": -1.4, "Tipo": "Ref_2"},
         ]
 
 # --- 1. INTERFAZ DE STREAMLIT ---
