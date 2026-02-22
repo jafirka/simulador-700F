@@ -509,7 +509,7 @@ st.divider()
 f_res_rpm, modos = modelo_base.calcular_frecuencias_naturales()
 # RPM de operación
 
-rpm_range = np.linspace(10, rpm_obj*1.2, 15000)
+rpm_range = np.linspace(10, rpm_obj*1.2, 1000)
 idx_op = np.argmin(np.abs(rpm_range - rpm_obj))
 
 rpm_range, D_desp, D_fuerza, acel_cg, vel_cg, S_desp, S_vel, S_acel = ejecutar_barrido_rpm(modelo_base, rpm_range, d_idx)
