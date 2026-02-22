@@ -252,7 +252,7 @@ def ejecutar_barrido_rpm(modelo, rpm_range, d_idx):
         # Momentos: My debido a Fx, Mx debido a Fy
         # Mx = Fy * brazo | My = -Fx * brazo
         F[3] = (F0 * 1j) * arm  # Momento en X
-        F[4] = -F0 * arm        # Momento en Y
+        F[4] = -F0 * arm2        # Momento en Y
 
 
         # Resolver el sistema: Z * X = F
