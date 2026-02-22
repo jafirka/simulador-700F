@@ -1,5 +1,9 @@
 from motor_fisico import *
 
+import requests
+import base64
+import io
+
 # ==========================================
 # 3️⃣ ENTORNO VISUAL (INTERFAZ)
 # ==========================================
@@ -220,9 +224,6 @@ with tab_dampers:
                 })
 
 
-import requests
-import base64
-import io
 def dibujar_modelo_2d(modelo):
     # 1. Obtener datos del modelo
     _, _, _, cg_global = modelo.armar_matrices()
@@ -239,7 +240,7 @@ def dibujar_modelo_2d(modelo):
         horizontal_spacing=0.15
     )
 
-# --- LÓGICA DE IMAGEN DESDE GITHUB ---
+    # --- LÓGICA DE IMAGEN DESDE GITHUB ---
     # REEMPLAZA ESTA URL por la tuya (debe empezar por raw.githubusercontent.com)
     url_github = "https://raw.githubusercontent.com/jafirka/simulador-700F/main/Centrifuga.png"    
     
@@ -509,7 +510,7 @@ st.divider()
 f_res_rpm, modos = modelo_base.calcular_frecuencias_naturales()
 # RPM de operación
 
-rpm_range = np.linspace(10, rpm_obj*1.2, 1000)
+rpm_range = np.linspace(10, rpm_obj*1.2, 19000)
 idx_op = np.argmin(np.abs(rpm_range - rpm_obj))
 
 rpm_range, D_desp, D_fuerza, acel_cg, vel_cg, S_desp, S_vel, S_acel = ejecutar_barrido_rpm(modelo_base, rpm_range, d_idx)
