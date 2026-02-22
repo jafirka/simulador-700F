@@ -308,16 +308,28 @@ def calcular_tabla_fuerzas(modelo, rpm_obj):
     
     F = np.zeros(6, dtype=complex)
     # Brazo en Z como en tu barrido: arm = dist - cg_global[2]
-    arm = ex['distancia_eje'] - cg_global[2] 
+    dist = ex['distancia_eje'] - cg_global[2] 
     
     # Fuerzas en X e Y como en tu barrido
-    F[0], F[1] = F0, F0 * 1j
+    #F[0], F[1] = F0, F0 * 1j
     # Momentos Mx y My como en tu barrido
-    F[3] = -(F0 * 1j) * arm  # Momento en X
-    F[4] = F0 * arm        # Momento en Y
-    F[5] =  0
+    #F[3] = -(F0 * 1j) * arm  # Momento en X
+    #F[4] = F0 * arm        # Momento en Y
+    #F[5] =  0
 
+    # Implementación corregida en el vector F:
+    lx_exc = -cg_global[0]
+    ly_exc = -cg_global[1]
+    lz_exc = dist - cg_global[2]
 
+    F = np.array([
+        F0,                     # Fx (Real)
+        1j * F0,                # Fy (Imaginaria - Giro 90°)
+        0,                      # Fz (Nula en desbalanceo radial)
+        (1j * F0) * lz_exc,     # Mx = Fy*lz - Fz*ly
+        -F0 * lz_exc,           # My = Fz*lx - Fx*lz
+        F0 * ly_exc - (1j * F0) * lx_exc  # Mz = Fx*ly - Fy*lx (Momento Torsional)
+    ])
 
 
     Z = -w**2 * M + 1j*w * C + K
