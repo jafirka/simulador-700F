@@ -274,16 +274,16 @@ def calcular_tabla_fuerzas(modelo, rpm_obj):
     
     F = np.zeros(6, dtype=complex)
     # Brazo en Z como en tu barrido: arm = dist - cg_global[2]
-    arm_z = ex['distancia_eje'] - cg_global[2] 
+    arm = ex['distancia_eje'] - cg_global[2] 
     
     # Fuerzas en X e Y como en tu barrido
     #F[0], F[1] = F0, F0 * 1j
     # Momentos Mx y My como en tu barrido
-    #F[3] = (F0 * 1j) * arm_z  # Momento en X
-    #F[4] = -F0 * arm_z        # Momento en Y
+    #F[3] = (F0 * 1j) * arm  # Momento en X
+    #F[4] = -F0 * arm        # Momento en Y
 
     F[0], F[2] = F0, F0 * 1j 
-    F[3], F[5] = (F0 * 1j) * arm_y, -F0 * arm_y
+    F[3], F[5] = (F0 * 1j) * arm, -F0 * arm
 
     Z = -w**2 * M + 1j*w * C + K
     X = linalg.solve(Z, F)
