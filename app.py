@@ -220,7 +220,9 @@ with tab_dampers:
                 })
 
 
-
+import requests
+import base64
+import io
 def dibujar_modelo_2d(modelo):
     # 1. Obtener datos del modelo
     _, _, _, cg_global = modelo.armar_matrices()
@@ -239,7 +241,7 @@ def dibujar_modelo_2d(modelo):
 
 # --- LÓGICA DE IMAGEN DESDE GITHUB ---
     # REEMPLAZA ESTA URL por la tuya (debe empezar por raw.githubusercontent.com)
-    url_github = "https://raw.githubusercontent.com/jafirka/simulador-700F/Centrifuga.png"
+    url_github = "https://raw.githubusercontent.com/jafirka/simulador-700F/main/Centrifuga.png"    
     
     encoded_string = None
     try:
