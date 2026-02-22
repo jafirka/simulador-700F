@@ -237,6 +237,18 @@ def dibujar_modelo_2d(modelo):
         horizontal_spacing=0.15
     )
 
+# --- LÓGICA DE IMAGEN DESDE GITHUB ---
+    # REEMPLAZA ESTA URL por la tuya (debe empezar por raw.githubusercontent.com)
+    url_github = "https://raw.githubusercontent.com/jafirka/simulador-700F/Centrifuga.png"
+    
+    encoded_string = None
+    try:
+        response = requests.get(url_github)
+        if response.status_code == 200:
+            encoded_string = base64.b64encode(response.content).decode()
+    except Exception as e:
+        print(f"Error cargando imagen: {e}")
+
     nombres_vistos = set()
     def agregar_traza(trace, row, col):
         if trace.name not in nombres_vistos:
@@ -249,7 +261,31 @@ def dibujar_modelo_2d(modelo):
     # --- 1. ÁREA GRIS DE DAMPERS (Sombreado) ---
     if len(modelo.dampers) >= 2:
         d_x = [d.pos[0] for d in modelo.dampers]
+        d_y = [d.pos[1] for d in modelo.dampers]
         d_z = [d.pos[2] for d in modelo.dampers]
+
+
+        min_x, max_x = min(d_x), max(d_x)
+        ancho_dampers = max_x - min_x
+        centro_x = (max_x + min_x) / 2
+        base_y = max(d_y)
+
+        # Aplicar el fondo si se descargó correctamente
+        if encoded_string:
+            fig.add_layout_image(
+                dict(
+                    source=f"data:image/png;base64,{encoded_string}",
+                    xref="x", yref="y",
+                    x=centro_x - (ancho_dampers / 2),
+                    y=base_y + (ancho_dampers * 0.8), # Ajuste fino de altura
+                    sizex=ancho_dampers,
+                    sizey=ancho_dampers,
+                    sizing="contain",
+                    opacity=0.3,
+                    layer="below"
+                ),
+                row=1, col=1
+            )
         
         # Sombreado Aisladores (Dampers) usando ConvexHull para el área de apoyo
         from scipy.spatial import ConvexHull
@@ -335,18 +371,6 @@ def dibujar_modelo_2d(modelo):
     return fig
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 # 3️⃣ ENSAMBLAJE FINAL (Cálculo Base)
 # Usamos las llaves del session_state para garantizar que, 
 # aunque el usuario no abra una pestaña, el simulador use el último dato guardado.
@@ -364,9 +388,6 @@ config_base = {
     },
     "tipos_dampers": pd.DataFrame(st.session_state.dampers_prop_data).set_index("Tipo").to_dict('index')
 }
-
-
-
 
 st.sidebar.divider()
 st.sidebar.header("💾 Gestión de Archivos")
@@ -459,8 +480,6 @@ st.sidebar.download_button(
 st.sidebar.write("---")
 
 
-
-
 # --- SELECTOR DE DAMPER ---
 # Accedemos directamente al diccionario de configuración
 lista_dampers_config = config_base["dampers"] 
@@ -469,8 +488,6 @@ opciones = [f"{i}: {d['tipo']} en {d['pos']}" for i, d in enumerate(lista_damper
 seleccion = st.sidebar.selectbox("Selección de damper para diagnóstico:", opciones)
 # Extraemos el índice
 d_idx = int(seleccion.split(":")[0])
-
-
 
 
 # --- 4. EJECUTAR AMBAS SIMULACIONES ---
