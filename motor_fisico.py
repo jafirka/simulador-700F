@@ -207,7 +207,7 @@ def ejecutar_barrido_rpm(modelo, rpm_range, d_idx):
         # 2. Inicialización del vector de excitación F (6 DOFs: Fx, Fy, Fz, Mx, My, Mz)
         F = np.zeros(6, dtype=complex)
             
-        arm = dist - cg_global[2]
+        arm = ex['distancia_eje'] - cg_global[2]
         # Fuerzas en X e Y
         F[0], F[1] = F0, F0 * 1j
         # Momentos: My debido a Fx, Mx debido a Fy
@@ -242,43 +242,6 @@ def ejecutar_barrido_rpm(modelo, rpm_range, d_idx):
     
     return rpm_range, D_desp, D_fuerza, acel_cg, vel_cg, S_desp, S_vel, S_acel
 
-def calcular_reacciones_estaticas(modelo):
-    """
-    Calcula la distribución real del peso en cada damper 
-    basado en su posición respecto al CG Global.
-    """
-    # 1. Obtener masa total y CG Global
-    m_total = sum(c["m"] for c in modelo.componentes.values())
-    W_total = m_total * 9.81
-    
-    # Necesitamos el CG global para las distancias (brazos de palanca)
-    _, _, _, cg_global = modelo.armar_matrices()
-    
-    # 2. Plantear sistema de ecuaciones:
-    # Suma de fuerzas Fz = 0
-    # Suma de momentos Mx = 0
-    # Suma de momentos My = 0
-    # Para sistemas con más de 3 apoyos (como el tuyo de 4), el sistema es hiperestático.
-    # Una aproximación robusta es usar la rigidez relativa (Kz) de cada damper.
-    
-    n_dampers = len(modelo.dampers)
-    A = np.zeros((3, n_dampers))
-    b = np.array([W_total, 0, 0])
-    
-    for i, d in enumerate(modelo.dampers):
-        # Brazos de palanca respecto al CG
-        rx = d.x - cg_global[0]
-        ry = d.y - cg_global[1]
-        
-        A[0, i] = 1          # Coeficiente para Fz
-        A[1, i] = ry         # Brazo para momento en X (Fz * distancia_y)
-        A[2, i] = -rx        # Brazo para momento en Y (Fz * distancia_x)
-
-    # Resolvemos usando la pseudoinversa (reparto basado en la proximidad geométrica)
-    # Esto equivale a suponer que todos los dampers tienen la misma rigidez vertical inicial.
-    reacciones = np.linalg.lstsq(A, b, rcond=None)[0]
-    
-    return reacciones
 
 def calcular_tabla_fuerzas(modelo, rpm_obj):
     """
