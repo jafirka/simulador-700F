@@ -248,12 +248,6 @@ def ejecutar_barrido_rpm(modelo, rpm_range, d_idx):
             F0 * ly_exc - (1j * F0) * lx_exc  # Mz = Fx*ly - Fy*lx (Momento Torsional)
         ])
 
-        F[0], F[1] = F0, F0 * 1j
-        # Momentos: My debido a Fx, Mx debido a Fy
-        # Mx = Fy * brazo | My = -Fx * brazo
-        F[3] = (F0 * 1j) * arm  # Momento en X
-        F[4] = -F0 * arm2        # Momento en Y
-
 
         # Resolver el sistema: Z * X = F
         Z = -w**2 * M + 1j*w * C + K
@@ -322,6 +316,9 @@ def calcular_tabla_fuerzas(modelo, rpm_obj):
     F[3] = -(F0 * 1j) * arm  # Momento en X
     F[4] = F0 * arm        # Momento en Y
     F[5] =  0
+
+
+
 
     Z = -w**2 * M + 1j*w * C + K
     X = linalg.solve(Z, F)
