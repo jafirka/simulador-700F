@@ -279,11 +279,8 @@ def calcular_tabla_fuerzas(modelo, rpm_obj):
     # Fuerzas en X e Y como en tu barrido
     F[0], F[1] = F0, F0 * 1j
     # Momentos Mx y My como en tu barrido
-    #F[3] = (F0 * 1j) * arm  # Momento en X
-    #F[4] = -F0 * arm        # Momento en Y
-
-    F[3] = -F[1] * arm   # Momento alrededor de X (causado por la fuerza vertical Y)
-    F[4] = F[0] * arm    # Momento alrededor de Y (causado por
+    F[3] = -(F0 * 1j) * arm  # Momento en X
+    F[4] = F0 * arm        # Momento en Y
 
     Z = -w**2 * M + 1j*w * C + K
     X = linalg.solve(Z, F)
