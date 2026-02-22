@@ -12,7 +12,7 @@ def inicializar_estado_del_simulador():
     # --- INICIALIZADOR DE DATOS (Fuente de Verdad Única) ---
     if 'componentes_data' not in st.session_state:
         st.session_state.componentes_data = {
-            "bancada": {"m": 10542.0, "pos": [0.0, 0.0, 0.0], "I": [[9235.0, 0.0, 0.0], [0.0, 5690.0, 0.0], [0.0, 0.0, 3779.0]]},
+            "bancada": {"m": 10542.0, "pos": [0.0, 0.0, -1.0], "I": [[9235.0, 0.0, 0.0], [0.0, 5690.0, 0.0], [0.0, 0.0, 3779.0]]},
             "cesto": {"m": 980.0, "pos": [0.0, 0.0, 0.0], "I": [[312.0, 0.0, 0.0], [0.0, 312.0, 0.0], [0.0, 0.0, 312.0]]}
         }
 

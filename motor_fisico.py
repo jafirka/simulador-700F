@@ -209,11 +209,47 @@ def ejecutar_barrido_rpm(modelo, rpm_range, d_idx):
             
         arm = ex['distancia_eje'] - cg_global[2]
         # Fuerzas en X e Y
-        F[0], F[1] = F0, F0 * 1j
+        #F[0], F[1] = F0, F0 * 1j
         # Momentos: My debido a Fx, Mx debido a Fy
         # Mx = Fy * brazo | My = -Fx * brazo
-        F[3] = (F0 * 1j) * arm  # Momento en X
-        F[4] = -F0 * arm        # Momento en Y
+        #F[3] = (F0 * 1j) * arm  # Momento en X
+        #F[4] = -F0 * arm        # Momento en Y
+
+        # =========================================================================
+        # NOTA TÉCNICA SOBRE LA EXCITACIÓN (EJE Z HORIZONTAL)
+        # =========================================================================
+        # Para garantizar la simetría dinámica en los apoyos, la fuerza debe 
+        # aplicarse respecto al EJE DE ROTACIÓN REAL (0, 0 en el plano X-Y).
+        #
+        # Si el CG_global está desplazado de este eje (excentricidad lateral), 
+        # la fuerza centrífuga genera momentos adicionales (Mx, My, Mz) 
+        # referidos al CG que el simulador debe resolver.
+        #
+        # Brazos de palanca desde el CG al punto de aplicación (en el eje):
+        # lx = 0 - cg_global[0] 
+        # ly = 0 - cg_global[1]
+        # lz = dist - cg_global[2]
+        #
+        # Esto corrige el "conflicto de fases" y restaura la simetría en los 
+        # resultados de los dampers cuando el sistema es geométricamente espejo.
+        # =========================================================================
+
+        # Implementación corregida en el vector F:
+        lx_exc = -cg_global[0]
+        ly_exc = -cg_global[1]
+        lz_exc = dist - cg_global[2]
+
+        F = np.array([
+            F0,                     # Fx (Real)
+            1j * F0,                # Fy (Imaginaria - Giro 90°)
+            0,                      # Fz (Nula en desbalanceo radial)
+            (1j * F0) * lz_exc,     # Mx = Fy*lz - Fz*ly
+            -F0 * lz_exc,           # My = Fz*lx - Fx*lz
+            F0 * ly_exc - (1j * F0) * lx_exc  # Mz = Fx*ly - Fy*lx (Momento Torsional)
+        ])
+
+
+
 
         # Resolver el sistema: Z * X = F
         Z = -w**2 * M + 1j*w * C + K
@@ -281,6 +317,7 @@ def calcular_tabla_fuerzas(modelo, rpm_obj):
     # Momentos Mx y My como en tu barrido
     F[3] = -(F0 * 1j) * arm  # Momento en X
     F[4] = F0 * arm        # Momento en Y
+    F[5] =  0
 
     Z = -w**2 * M + 1j*w * C + K
     X = linalg.solve(Z, F)
