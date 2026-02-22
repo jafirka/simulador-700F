@@ -223,13 +223,13 @@ with tab_dampers:
 import requests
 import base64
 import io
-
 def dibujar_modelo_2d(modelo):
     # 1. Obtener datos del modelo
     _, _, _, cg_global = modelo.armar_matrices()
     pos_sensor = modelo.pos_sensor
     ex = modelo.excitacion
     
+    # Obtenemos el radio desde la excentricidad guardada en la excitación
     radio_m = ex.get('e_unbalance', 0.625) 
     diametro_mm = radio_m * 2 * 1000
 
@@ -239,16 +239,17 @@ def dibujar_modelo_2d(modelo):
         horizontal_spacing=0.15
     )
 
-    # --- LÓGICA DE IMAGEN DESDE GITHUB (URL RAW) ---
-    url_raw = "https://raw.githubusercontent.com/jafirka/simulador-700F/main/Centrifuga.png"
+# --- LÓGICA DE IMAGEN DESDE GITHUB ---
+    # REEMPLAZA ESTA URL por la tuya (debe empezar por raw.githubusercontent.com)
+    url_github = "https://raw.githubusercontent.com/jafirka/simulador-700F/main/Centrifuga.png"    
     
     encoded_string = None
     try:
-        response = requests.get(url_raw)
+        response = requests.get(url_github)
         if response.status_code == 200:
             encoded_string = base64.b64encode(response.content).decode()
-    except Exception:
-        pass # Si falla, el gráfico se muestra sin fondo
+    except Exception as e:
+        print(f"Error cargando imagen: {e}")
 
     nombres_vistos = set()
     def agregar_traza(trace, row, col):
@@ -259,36 +260,36 @@ def dibujar_modelo_2d(modelo):
             trace.showlegend = False
         fig.add_trace(trace, row=row, col=col)
 
-    # --- CÁLCULO DE LÍMITES PARA ESCALADO ---
+    # --- 1. ÁREA GRIS DE DAMPERS (Sombreado) ---
     if len(modelo.dampers) >= 2:
         d_x = [d.pos[0] for d in modelo.dampers]
         d_y = [d.pos[1] for d in modelo.dampers]
         d_z = [d.pos[2] for d in modelo.dampers]
-        
-        # El ancho de la imagen se ajusta al ancho total entre dampers
-        ancho_maquina = max(d_x) - min(d_x)
-        centro_x = (max(d_x) + min(d_x)) / 2
-        # La base de la imagen se apoya en el nivel de los dampers (Y)
-        y_base = min(d_y) 
 
-        # Agregar imagen de fondo en la Vista Frontal (Col 1)
+
+        min_x, max_x = min(d_x), max(d_x)
+        ancho_dampers = max_x - min_x
+        centro_x = (max_x + min_x) / 2
+        base_y = max(d_y)
+
+        # Aplicar el fondo si se descargó correctamente
         if encoded_string:
             fig.add_layout_image(
                 dict(
                     source=f"data:image/png;base64,{encoded_string}",
                     xref="x", yref="y",
-                    x=centro_x - (ancho_maquina / 2),
-                    y=y_base + (ancho_maquina * 1.2), # Altura proporcional
-                    sizex=ancho_maquina,
-                    sizey=ancho_maquina * 1.2, 
+                    x=centro_x - (ancho_dampers / 2),
+                    y=base_y + (ancho_dampers * 0.8), # Ajuste fino de altura
+                    sizex=ancho_dampers,
+                    sizey=ancho_dampers,
                     sizing="contain",
-                    opacity=0.4,
+                    opacity=0.3,
                     layer="below"
                 ),
                 row=1, col=1
             )
-
-        # Sombreado de área en Planta (Col 2)
+        
+        # Sombreado Aisladores (Dampers) usando ConvexHull para el área de apoyo
         from scipy.spatial import ConvexHull
         puntos = np.column_stack((d_x, d_z))
         hull = ConvexHull(puntos)
@@ -301,8 +302,21 @@ def dibujar_modelo_2d(modelo):
             name="Área de Apoyo (Base)", showlegend=True, hoverinfo='skip'
         ), row=1, col=2)
 
-    # --- DIBUJO DE COMPONENTES ---
-    # CG Global
+        # --- 2. RECTÁNGULO DEL CESTO ---
+        z_base_cesto = max(d_z) # Punto superior de los dampers
+        z_masa = ex['distancia_eje'] # Altura de la carga
+
+        fig.add_trace(go.Scatter(
+            x=[-radio_m, radio_m, radio_m, -radio_m, -radio_m],
+            y=[z_base_cesto, z_base_cesto, z_masa, z_masa, z_base_cesto],
+            fill="toself",
+            fillcolor="rgba(100, 100, 100, 0.1)",
+            line=dict(color="rgba(0, 0, 0, 0.3)", width=2, dash='dot'),
+            name=f"Cuerpo Cesto (Ø {diametro_mm:.0f}mm)",
+            showlegend=True, hoverinfo='skip'
+        ), row=1, col=2)
+
+    # --- 3. CENTRO DE GRAVEDAD GLOBAL (Único) ---
     for r, c, y_val in [(1, 1, cg_global[1]), (1, 2, cg_global[2])]:
         agregar_traza(go.Scatter(
             x=[cg_global[0]], y=[y_val],
@@ -310,7 +324,7 @@ def dibujar_modelo_2d(modelo):
             marker=dict(symbol='x', size=14, color='purple', line=dict(width=2))
         ), r, c)
 
-    # Dampers
+    # --- 4. DAMPERS, SENSOR Y MASA ---
     for d in modelo.dampers:
         for r, c, y_val in [(1, 1, d.pos[1]), (1, 2, d.pos[2])]:
             agregar_traza(go.Scatter(
@@ -318,24 +332,42 @@ def dibujar_modelo_2d(modelo):
                 marker=dict(symbol='diamond', size=10, color='cyan', line=dict(width=1, color='black'))
             ), r, c)
 
-    # Sensor
     for r, c, y_val in [(1, 1, pos_sensor[1]), (1, 2, pos_sensor[2])]:
         agregar_traza(go.Scatter(
             x=[pos_sensor[0]], y=[y_val], mode='markers', name='Sensor Velocidad',
             marker=dict(symbol='star', size=15, color='lime', line=dict(width=1, color='black'))
         ), r, c)
 
-    # Configuración de Layout
+    if ex['m_unbalance'] > 0:
+        z_unb = ex['distancia_eje']
+        e_unb = ex['e_unbalance']
+        fig.add_trace(go.Scatter(
+            x=[0, e_unb], y=[z_unb, z_unb], mode='lines', name='Radio Desbalanceo',
+            line=dict(color='red', width=2, dash='dash')
+        ), row=1, col=2)
+        fig.add_trace(go.Scatter(
+            x=[e_unb], y=[z_unb], mode='markers', name='Masa Desbalanceo',
+            marker=dict(size=12, color='red')
+        ), row=1, col=2)
+
+    # Configuración de Layout y Ejes Marcados
     fig.update_layout(
         font=dict(size=14),
         legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
         height=600, plot_bgcolor='white'
     )
 
+    # Vista Frontal (X-Y): X normal (Derecha)
     fig.update_xaxes(title_text="<b>Eje X [m]</b>", zeroline=True, row=1, col=1)
     fig.update_yaxes(title_text="<b>Eje Y (Altura) [m]</b>", zeroline=True, row=1, col=1)
-    
-    fig.update_xaxes(title_text="<b>Eje X [m]</b>", zeroline=True, autorange="reversed", row=1, col=2)
+
+    # Vista de Planta (X-Z): Invertimos X para que sea coherente con Z hacia adelante
+    fig.update_xaxes(
+        title_text="<b>Eje X [m]</b>", 
+        zeroline=True, 
+        autorange="reversed", # <--- ESTO invierte el eje X solo en la planta
+        row=1, col=2
+    )
     fig.update_yaxes(title_text="<b>Eje Z (Profundidad) [m]</b>", zeroline=True, row=1, col=2)
 
     return fig
