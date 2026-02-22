@@ -292,12 +292,8 @@ def calcular_tabla_fuerzas(modelo, rpm_obj):
         ks, cs = [d.kx, d.ky, d.kz], [d.cx, d.cy, d.cz]
         
         # Amplitudes dinámicas (idéntico al barrido)
-        #f_din = [np.abs((ks[j] + 1j * w * cs[j]) * X_d[j]) for j in range(3)]
-        f_din = []
-        for j in range(3):
-            f_complex = (ks[j] + 1j * w * cs[j]) * X_d[j]
-            # El valor pico real es el módulo del número complejo
-            f_din.append(np.abs(f_complex))
+        f_din = [np.abs((ks[j] + 1j * w * cs[j]) * X_d[j]) for j in range(3)]
+
 
 
         f_est_y = reacciones_estaticas[i]
