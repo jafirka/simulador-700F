@@ -280,7 +280,7 @@ def calcular_tabla_fuerzas(modelo, rpm_obj):
     F[0], F[1] = F0, F0 * 1j
     # Momentos Mx y My como en tu barrido
     F[3] = (F0 * 1j) * arm_z  # Momento en X
-    F[4] = 0#-F0 * arm_z        # Momento en Y
+    F[4] = -F0 * arm_z        # Momento en Y
 
     Z = -w**2 * M + 1j*w * C + K
     X = linalg.solve(Z, F)
@@ -292,7 +292,14 @@ def calcular_tabla_fuerzas(modelo, rpm_obj):
         ks, cs = [d.kx, d.ky, d.kz], [d.cx, d.cy, d.cz]
         
         # Amplitudes dinámicas (idéntico al barrido)
-        f_din = [np.abs((ks[j] + 1j * w * cs[j]) * X_d[j]) for j in range(3)]
+        #f_din = [np.abs((ks[j] + 1j * w * cs[j]) * X_d[j]) for j in range(3)]
+        f_din = []
+        for j in range(3):
+            f_complex = (ks[j] + 1j * w * cs[j]) * X_d[j]
+            # El valor pico real es el módulo del número complejo
+            f_din.append(np.abs(f_complex))
+
+
         f_est_y = reacciones_estaticas[i]
         
         # En tu barrido la fuerza vertical es el eje Y (índice 1)
