@@ -542,11 +542,6 @@ if not df_cargas.empty:
         }
     )
     
-    # Verificación de seguridad rápida
-    if any(df_cargas["Dinámica Z [N]"] > df_cargas["Carga Estática [N]"]):
-        st.warning("⚠️ Atención: En algunos apoyos la fuerza dinámica Z supera la estática. Riesgo de pérdida de contacto.")
-
-
 
 # --- DEFINICIÓN DE EJES PARA GRÁFICOS (Pegar antes de los bucles for) ---
 eje_axial = "z"

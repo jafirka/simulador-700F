@@ -338,10 +338,10 @@ def calcular_tabla_fuerzas(modelo, rpm_obj):
         
         resumen.append({
             "Damper": d.nombre,
-            "Carga Estática [N]": round(f_est, 1),
-            "Dinámica Radial X [N]": round(f_din[0], 1),
+            "Carga Estática Vertical Y [N]": round(f_est, 1),
+            "Dinámica Horizontal X [N]": round(f_din[0], 1),
             "Dinámica Vertical Y [N]": round(f_din[1], 1),
-            "Dinámica Radial Z [N]": round(f_din[2], 1),
+            "Dinámica Horizontal Z [N]": round(f_din[2], 1),
             "Carga TOTAL MÁX [N]": round(f_max_vert, 1),
             "Margen Estabilidad [N]": round(f_min_vert, 1)
         })
