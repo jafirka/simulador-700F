@@ -564,7 +564,9 @@ st.info(f"Mostrando el comportamiento oscilatorio para el Damper seleccionado a 
 # Llamamos a la función y le pasamos el objeto figura a Streamlit
 fig_tiempo = graficar_fuerza_tiempo(modelo_base, rpm_obj, d_idx)
 st.pyplot(fig_tiempo)
-
+# Llamamos a la función y le pasamos el objeto figura a Streamlit
+fig_tiempo = graficar_fuerza_tiempo(modelo_base, rpm_obj, 2)
+st.pyplot(fig_tiempo)
 
 # ==========================================
 # 📄 INTRODUCCIÓN Y MEMORIA DE CÁLCULO
