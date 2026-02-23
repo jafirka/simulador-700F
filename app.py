@@ -138,9 +138,9 @@ with tab_comp:
             #py = cy.number_input(f"Y [m]", value=float(st.session_state.componentes_data[nombre]["pos"][1]), format="%.3f", key=f"y_{nombre}")
             #pz = cz.number_input(f"Z [m]", value=float(st.session_state.componentes_data[nombre]["pos"][2]), format="%.3f", key=f"z_{nombre}")
 
-            px = cx.number_input(f"X [m]", value=float(pos_actual[0]), format="%.3f")
-            py = cy.number_input(f"Y [m]", value=float(pos_actual[1]), format="%.3f")
-            pz = cz.number_input(f"Z [m]", value=float(pos_actual[2]), format="%.3f")
+                px = cx.number_input(f"X [m]", value=float(pos_actual[0]), format="%.3f")
+                py = cy.number_input(f"Y [m]", value=float(pos_actual[1]), format="%.3f")
+                pz = cz.number_input(f"Z [m]", value=float(pos_actual[2]), format="%.3f")
 
 
 
