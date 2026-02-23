@@ -267,7 +267,7 @@ def dibujar_modelo_2d(modelo):
         # --- IMAGEN SOLO EN LA IZQUIERDA (COL 1) ---
         if encoded_string:
             # Aumentamos el ancho visual para que la carcasa cubra bien los apoyos
-            ancho_visual = ancho_dampers * 1.8 
+            ancho_visual = ancho_dampers * 2.5 
             
             fig.add_layout_image(
                 dict(
@@ -275,7 +275,7 @@ def dibujar_modelo_2d(modelo):
                     xref="x", yref="y",
                     x=centro_x,          # Centro en X
                     y=base_y_dampers,    # Base en Y (enrasado)
-                    sizex=ancho_visual*2,
+                    sizex=ancho_visual,
                     sizey=ancho_visual,
                     xanchor="center",    # Anclaje horizontal al centro
                     yanchor="bottom",    # Anclaje vertical a la base de la imagen
