@@ -351,7 +351,7 @@ def dibujar_modelo_2d(modelo):
     # Ajuste de rangos para que la imagen se vea centrada y grande
     # Izquierda (Frontal)
     fig.update_xaxes(title_text="<b>Eje X [m]</b>", range=[centro_x - 1.5, centro_x + 1.5], zeroline=True, row=1, col=1)
-    fig.update_yaxes(title_text="<b>Eje Y (Altura) [m]</b>", range=[base_y_dampers - 0.5, base_y_dampers + 4.0], zeroline=True, row=1, col=1)
+    fig.update_yaxes(title_text="<b>Eje Y (Altura) [m]</b>", range=[base_y_dampers - 0.1, base_y_dampers + 6.0], zeroline=True, row=1, col=1)
 
     # Derecha (Planta)
     fig.update_xaxes(title_text="<b>Eje X [m]</b>", zeroline=True, autorange="reversed", row=1, col=2)
