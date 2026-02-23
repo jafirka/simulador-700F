@@ -274,13 +274,6 @@ def graficar_fuerza_tiempo(modelo, rpm, d_idx):
     
     return fig
 
-st.divider()
-st.subheader("⏱️ Respuesta Temporal de Fuerzas")
-st.info(f"Mostrando el comportamiento oscilatorio para el Damper seleccionado a {rpm_obj} RPM.")
-
-# Llamamos a la función y le pasamos el objeto figura a Streamlit
-fig_tiempo = graficar_fuerza_tiempo(modelo_base, rpm_obj, d_idx)
-st.pyplot(fig_tiempo)
 
 
 
@@ -563,6 +556,15 @@ rpm_range = np.linspace(10, rpm_obj*1.2, 1000)
 idx_op = np.argmin(np.abs(rpm_range - rpm_obj))
 
 rpm_range, D_desp, D_fuerza, acel_cg, vel_cg, S_desp, S_vel, S_acel = ejecutar_barrido_rpm(modelo_base, rpm_range, d_idx)
+
+st.divider()
+st.subheader("⏱️ Respuesta Temporal de Fuerzas")
+st.info(f"Mostrando el comportamiento oscilatorio para el Damper seleccionado a {rpm_obj} RPM.")
+
+# Llamamos a la función y le pasamos el objeto figura a Streamlit
+fig_tiempo = graficar_fuerza_tiempo(modelo_base, rpm_obj, d_idx)
+st.pyplot(fig_tiempo)
+
 
 # ==========================================
 # 📄 INTRODUCCIÓN Y MEMORIA DE CÁLCULO
