@@ -229,6 +229,7 @@ def dibujar_modelo_2d(modelo):
     pos_sensor = modelo.pos_sensor
     ex = modelo.excitacion
     
+    # Obtenemos el radio desde la excentricidad guardada en la excitación
     radio_m = ex.get('e_unbalance', 0.625) 
     diametro_mm = radio_m * 2 * 1000
 
@@ -239,6 +240,7 @@ def dibujar_modelo_2d(modelo):
     )
 
     # --- LÓGICA DE IMAGEN DESDE GITHUB ---
+    # REEMPLAZA ESTA URL por la tuya (debe empezar por raw.githubusercontent.com)
     url_github = "https://raw.githubusercontent.com/jafirka/simulador-700F/main/Centrifuga.png"    
     
     encoded_string = None
@@ -249,43 +251,56 @@ def dibujar_modelo_2d(modelo):
     except Exception as e:
         print(f"Error cargando imagen: {e}")
 
-    # --- CÁLCULO DE LÍMITES PARA POSICIONAR LA IMAGEN ---
+    nombres_vistos = set()
+    def agregar_traza(trace, row, col):
+        if trace.name not in nombres_vistos:
+            trace.showlegend = True
+            nombres_vistos.add(trace.name)
+        else:
+            trace.showlegend = False
+        fig.add_trace(trace, row=row, col=col)
+
+    # --- 1. ÁREA GRIS DE DAMPERS (Sombreado) ---
     if len(modelo.dampers) >= 2:
         d_x = [d.pos[0] for d in modelo.dampers]
         d_y = [d.pos[1] for d in modelo.dampers]
         d_z = [d.pos[2] for d in modelo.dampers]
 
+
         min_x, max_x = min(d_x), max(d_x)
         ancho_dampers = max_x - min_x
         centro_x = (max_x + min_x) / 2
-        base_y_dampers = max(d_y) # Altura de los dampers (Y es negativo hacia abajo, el valor más alto es la base)
+        base_y = max(d_y)
 
-        # --- APLICAR IMAGEN (CORREGIDO: Centrada en X y enrasada en Y) ---
+        # Aplicar el fondo si se descargó correctamente
+        # --- APLICAR IMAGEN CORREGIDA ---
         if encoded_string:
-            # Definimos un tamaño proporcional. Si la imagen es cuadrada, usamos ancho_dampers.
-            # Puedes ajustar el multiplicador 1.2 si la imagen se ve muy pequeña o grande.
-            size_factor = 1.2 
+            # Determinamos el ancho total entre apoyos (aprox 1.5m según tu JSON)
+            # Queremos que la imagen sea un poco más ancha que la distancia entre patas
+            ancho_visual = ancho_dampers * 1.8  
             
             fig.add_layout_image(
                 dict(
                     source=f"data:image/png;base64,{encoded_string}",
                     xref="x", yref="y",
-                    # X: centro_x posiciona el centro de la imagen en el centro de los dampers
-                    x=centro_x, 
-                    # Y: base_y_dampers la sitúa justo donde terminan los aisladores
-                    y=base_y_dampers,
-                    sizex=ancho_dampers * size_factor,
-                    sizey=ancho_dampers * size_factor,
-                    xanchor="center",  # <--- Centra la imagen horizontalmente sobre 'x'
-                    yanchor="bottom",  # <--- Alinea la parte INFERIOR de la imagen con 'y'
+                    x=centro_x,          # Centro exacto en el eje X
+                    y=base_y_dampers,    # Base en la altura de los apoyos (-1.28m)
+                    sizex=ancho_visual,  # Forzamos el ancho para que se vea grande
+                    sizey=ancho_visual,  # Mantenemos proporción
+                    xanchor="center",    # El punto 'x' es el centro de la imagen
+                    yanchor="bottom",    # El punto 'y' es la base de la imagen
                     sizing="contain",
-                    opacity=0.3,
+                    opacity=0.4,         # Un poco más visible
                     layer="below"
                 ),
                 row=1, col=1
             )
         
-        # Sombreado Aisladores (Planta)
+        # Ajustamos los ejes para que la imagen no quede "cortada"
+        fig.update_xaxes(range=[centro_x - 2, centro_x + 2], row=1, col=1)
+        fig.update_yaxes(range=[base_y_dampers - 0.5, base_y_dampers + 3], row=1, col=1)
+        
+        # Sombreado Aisladores (Dampers) usando ConvexHull para el área de apoyo
         from scipy.spatial import ConvexHull
         puntos = np.column_stack((d_x, d_z))
         hull = ConvexHull(puntos)
@@ -298,17 +313,76 @@ def dibujar_modelo_2d(modelo):
             name="Área de Apoyo (Base)", showlegend=True, hoverinfo='skip'
         ), row=1, col=2)
 
-    # ... (Resto de trazas de CG, Dampers, Sensor y Masa se mantienen igual) ...
-    # [Mantener el código original de las trazas aquí para no perder los puntos]
+        # --- 2. RECTÁNGULO DEL CESTO ---
+        z_base_cesto = max(d_z) # Punto superior de los dampers
+        z_masa = ex['distancia_eje'] # Altura de la carga
 
-    # Ajustes de Layout
+        fig.add_trace(go.Scatter(
+            x=[-radio_m, radio_m, radio_m, -radio_m, -radio_m],
+            y=[z_base_cesto, z_base_cesto, z_masa, z_masa, z_base_cesto],
+            fill="toself",
+            fillcolor="rgba(100, 100, 100, 0.1)",
+            line=dict(color="rgba(0, 0, 0, 0.3)", width=2, dash='dot'),
+            name=f"Cuerpo Cesto (Ø {diametro_mm:.0f}mm)",
+            showlegend=True, hoverinfo='skip'
+        ), row=1, col=2)
+
+    # --- 3. CENTRO DE GRAVEDAD GLOBAL (Único) ---
+    for r, c, y_val in [(1, 1, cg_global[1]), (1, 2, cg_global[2])]:
+        agregar_traza(go.Scatter(
+            x=[cg_global[0]], y=[y_val],
+            mode='markers', name='CG Global',
+            marker=dict(symbol='x', size=14, color='purple', line=dict(width=2))
+        ), r, c)
+
+    # --- 4. DAMPERS, SENSOR Y MASA ---
+    for d in modelo.dampers:
+        for r, c, y_val in [(1, 1, d.pos[1]), (1, 2, d.pos[2])]:
+            agregar_traza(go.Scatter(
+                x=[d.pos[0]], y=[y_val], mode='markers', name='Aisladores (Dampers)',
+                marker=dict(symbol='diamond', size=10, color='cyan', line=dict(width=1, color='black'))
+            ), r, c)
+
+    for r, c, y_val in [(1, 1, pos_sensor[1]), (1, 2, pos_sensor[2])]:
+        agregar_traza(go.Scatter(
+            x=[pos_sensor[0]], y=[y_val], mode='markers', name='Sensor Velocidad',
+            marker=dict(symbol='star', size=15, color='lime', line=dict(width=1, color='black'))
+        ), r, c)
+
+    if ex['m_unbalance'] > 0:
+        z_unb = ex['distancia_eje']
+        e_unb = ex['e_unbalance']
+        fig.add_trace(go.Scatter(
+            x=[0, e_unb], y=[z_unb, z_unb], mode='lines', name='Radio Desbalanceo',
+            line=dict(color='red', width=2, dash='dash')
+        ), row=1, col=2)
+        fig.add_trace(go.Scatter(
+            x=[e_unb], y=[z_unb], mode='markers', name='Masa Desbalanceo',
+            marker=dict(size=12, color='red')
+        ), row=1, col=2)
+
+    # Configuración de Layout y Ejes Marcados
     fig.update_layout(
         font=dict(size=14),
         legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
         height=600, plot_bgcolor='white'
     )
 
+    # Vista Frontal (X-Y): X normal (Derecha)
+    fig.update_xaxes(title_text="<b>Eje X [m]</b>", zeroline=True, row=1, col=1)
+    fig.update_yaxes(title_text="<b>Eje Y (Altura) [m]</b>", zeroline=True, row=1, col=1)
+
+    # Vista de Planta (X-Z): Invertimos X para que sea coherente con Z hacia adelante
+    fig.update_xaxes(
+        title_text="<b>Eje X [m]</b>", 
+        zeroline=True, 
+        autorange="reversed", # <--- ESTO invierte el eje X solo en la planta
+        row=1, col=2
+    )
+    fig.update_yaxes(title_text="<b>Eje Z (Profundidad) [m]</b>", zeroline=True, row=1, col=2)
+
     return fig
+
 
 
 # 3️⃣ ENSAMBLAJE FINAL (Cálculo Base)
