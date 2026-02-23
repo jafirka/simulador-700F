@@ -227,6 +227,56 @@ with tab_dampers:
                 })
 
 
+def graficar_fuerza_tiempo(modelo, rpm, d_idx, ciclos=2):
+    M, K, C, cg_global = modelo.armar_matrices()
+    w = rpm * 2 * np.pi / 60
+    
+    # 1. Calcular respuesta compleja a esa RPM específica
+    ex = modelo.excitacion
+    F0 = ex['m_unbalance'] * ex['e_unbalance'] * (w**2)
+    arm_y = ex['distancia_eje'] - cg_global[1]
+    
+    F_vec = np.zeros(6, dtype=complex)
+    F_vec[0], F_vec[2] = F0, F0 * 1j 
+    F_vec[3], F_vec[5] = (F0 * 1j) * arm_y, -F0 * arm_y
+
+    Z = -w**2 * M + 1j*w * C + K
+    X_resp = np.linalg.solve(Z, F_vec)
+
+    # 2. Definir vector de tiempo
+    periodo = 2 * np.pi / w
+    t = np.linspace(0, ciclos * periodo, 1000)
+    
+    # 3. Obtener propiedades del damper
+    d = modelo.dampers[d_idx]
+    T_d = d.get_matriz_T(cg_global)
+    X_local = T_d @ X_resp
+    ks = [d.kx, d.ky, d.kz]
+    cs = [d.cx, d.cy, d.cz]
+    
+    # 4. Calcular fuerza instantánea: F(t) = k*x(t) + c*v(t)
+    # Matemáticamente: Re( (k + i*w*c) * X * exp(i*w*t) )
+    f_ejes = {"x": [], "y": [], "z": []}
+    for ti in t:
+        fasor = np.exp(1j * w * ti)
+        for i, eje in enumerate(["x", "y", "z"]):
+            f_compleja = (ks[i] + 1j * w * cs[i]) * X_local[i] * fasor
+            f_ejes[eje].append(f_compleja.real)
+
+    # 5. Graficar
+    fig, ax = plt.subplots(figsize=(10, 4))
+    ax.plot(t, f_ejes["x"], label="Fuerza X (Horizontal)", color="tab:blue")
+    ax.plot(t, f_ejes["y"], label="Fuerza Y (Vertical)", color="tab:orange", linewidth=2)
+    ax.plot(t, f_ejes["z"], label="Fuerza Z (Profundidad)", color="tab:green")
+    
+    ax.set_title(f"Fuerza en Damper {d.nombre} vs Tiempo ({rpm} RPM)")
+    ax.set_xlabel("Tiempo [s]")
+    ax.set_ylabel("Fuerza Dinámica [N]")
+    ax.grid(True, alpha=0.3)
+    ax.legend()
+    return fig
+
+
 def dibujar_modelo_2d(modelo):
     # 1. Obtener datos maestros del modelo
     _, _, _, cg_global = modelo.armar_matrices()
