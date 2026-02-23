@@ -275,12 +275,12 @@ def dibujar_modelo_2d(modelo):
                     xref="x", yref="y",
                     x=centro_x,          # Centro en X
                     y=base_y_dampers,    # Base en Y (enrasado)
-                    sizex=ancho_visual,
+                    sizex=ancho_visual*2,
                     sizey=ancho_visual,
                     xanchor="center",    # Anclaje horizontal al centro
                     yanchor="bottom",    # Anclaje vertical a la base de la imagen
                     sizing="contain",
-                    opacity=0.5,         # Opacidad equilibrada
+                    opacity=0.7,         # Opacidad equilibrada
                     layer="below"
                 ),
                 row=1, col=1
