@@ -130,6 +130,9 @@ with tab_comp:
 
             with c_p:
                 cx, cy, cz = st.columns(3)
+                px = cx.number_input(f"X {nombre} [m]", value=float(pos_actual[0]), format="%.3f")
+                py = cy.number_input(f"Y {nombre} [m]", value=float(pos_actual[1]), format="%.3f")
+                pz = cz.number_input(f"Z {nombre} [m]", value=float(pos_actual[2]), format="%.3f")
             #px = cx.number_input(f"X [m]", value=float(pos_actual[0]), format="%.3f", key=f"x_{nombre}")
             #py = cy.number_input(f"Y [m]", value=float(pos_actual[1]), format="%.3f", key=f"y_{nombre}")
             #pz = cz.number_input(f"Z [m]", value=float(pos_actual[2]), format="%.3f", key=f"z_{nombre}")
@@ -138,13 +141,11 @@ with tab_comp:
             #py = cy.number_input(f"Y [m]", value=float(st.session_state.componentes_data[nombre]["pos"][1]), format="%.3f", key=f"y_{nombre}")
             #pz = cz.number_input(f"Z [m]", value=float(st.session_state.componentes_data[nombre]["pos"][2]), format="%.3f", key=f"z_{nombre}")
 
-                px = cx.number_input(f"X [m]", value=float(pos_actual[0]), format="%.3f")
-                py = cy.number_input(f"Y [m]", value=float(pos_actual[1]), format="%.3f")
-                pz = cz.number_input(f"Z [m]", value=float(pos_actual[2]), format="%.3f")
-
-
-
-            
+                #px = cx.number_input(f"X [m]", value=float(pos_actual[0]), format="%.3f")
+                #py = cy.number_input(f"Y [m]", value=float(pos_actual[1]), format="%.3f")
+                #pz = cz.number_input(f"Z [m]", value=float(pos_actual[2]), format="%.3f")
+       
+           
             st.write(f"**Matriz de Inercia (3x3) [kg·m²]**")
 
             # El data_editor es excelente para matrices
