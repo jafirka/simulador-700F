@@ -3,7 +3,7 @@ from motor_fisico import *
 import requests
 import base64
 import io
-
+ 
 # ==========================================
 # 3️⃣ ENTORNO VISUAL (INTERFAZ)
 # ==========================================
