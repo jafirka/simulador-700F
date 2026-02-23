@@ -262,12 +262,12 @@ def dibujar_modelo_2d(modelo):
         min_x, max_x = min(d_x), max(d_x)
         ancho_dampers = max_x - min_x
         centro_x = (max_x + min_x) / 2
-        base_y_dampers = max(d_y)-0.3  # Altura Y de los apoyos (ej: -1.28m)
+        base_y_dampers = max(d_y)-0.35  # Altura Y de los apoyos (ej: -1.28m)
 
         # --- IMAGEN SOLO EN LA IZQUIERDA (COL 1) ---
         if encoded_string:
             # Aumentamos el ancho visual para que la carcasa cubra bien los apoyos
-            ancho_visual = ancho_dampers * 2.5 
+            ancho_visual = ancho_dampers * 3 
             
             fig.add_layout_image(
                 dict(
@@ -350,8 +350,8 @@ def dibujar_modelo_2d(modelo):
 
     # Ajuste de rangos para que la imagen se vea centrada y grande
     # Izquierda (Frontal)
-    fig.update_xaxes(title_text="<b>Eje X [m]</b>", range=[centro_x - 2.5, centro_x + 2.5], zeroline=True, row=1, col=1)
-    fig.update_yaxes(title_text="<b>Eje Y (Altura) [m]</b>", range=[base_y_dampers - 0.1, base_y_dampers + 5.0], zeroline=True, row=1, col=1)
+    fig.update_xaxes(title_text="<b>Eje X [m]</b>", range=[centro_x - 2, centro_x + 2], zeroline=True, row=1, col=1)
+    fig.update_yaxes(title_text="<b>Eje Y (Altura) [m]</b>", range=[base_y_dampers - 0.1, base_y_dampers + 4.0], zeroline=True, row=1, col=1)
 
     # Derecha (Planta)
     fig.update_xaxes(title_text="<b>Eje X [m]</b>", zeroline=True, autorange="reversed", row=1, col=2)
