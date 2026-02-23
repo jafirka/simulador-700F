@@ -285,7 +285,7 @@ def dibujar_modelo_2d(modelo):
                     xref="x", yref="y",
                     x=centro_x,          # Centro exacto en el eje X
                     y=d_y,    # Base en la altura de los apoyos (-1.28m)
-                    sizex=aancho_dampers*1.1,  # Forzamos el ancho para que se vea grande
+                    sizex=ancho_dampers*1.1,  # Forzamos el ancho para que se vea grande
                     #sizey=ancho,  # Mantenemos proporción
                     xanchor="center",    # El punto 'x' es el centro de la imagen
                     yanchor="bottom",    # El punto 'y' es la base de la imagen
