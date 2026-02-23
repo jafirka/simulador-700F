@@ -130,9 +130,16 @@ with tab_comp:
 
             with c_p:
                 cx, cy, cz = st.columns(3)
-            px = cx.number_input(f"X [m]", value=float(pos_actual[0]), format="%.3f", key=f"x_{nombre}")
-            py = cy.number_input(f"Y [m]", value=float(pos_actual[1]), format="%.3f", key=f"y_{nombre}")
-            pz = cz.number_input(f"Z [m]", value=float(pos_actual[2]), format="%.3f", key=f"z_{nombre}")
+            #px = cx.number_input(f"X [m]", value=float(pos_actual[0]), format="%.3f", key=f"x_{nombre}")
+            #py = cy.number_input(f"Y [m]", value=float(pos_actual[1]), format="%.3f", key=f"y_{nombre}")
+            #pz = cz.number_input(f"Z [m]", value=float(pos_actual[2]), format="%.3f", key=f"z_{nombre}")
+
+            px = cx.number_input(f"X [m]", value=float(st.session_state.componentes_data[nombre]["pos"][0]), format="%.3f", key=f"x_{nombre}")
+            py = cy.number_input(f"Y [m]", value=float(st.session_state.componentes_data[nombre]["pos"][1]), format="%.3f", key=f"y_{nombre}")
+            pz = cz.number_input(f"Z [m]", value=float(st.session_state.componentes_data[nombre]["pos"][2]), format="%.3f", key=f"z_{nombre}")
+
+
+
             
             st.write(f"**Matriz de Inercia (3x3) [kg·m²]**")
 
@@ -423,6 +430,13 @@ if archivo_subido is not None:
                 st.session_state.dampers_pos_data = datos_preset["dampers_pos_data"]
                 if "pos_dampers_editor_v2" in st.session_state:
                     del st.session_state["pos_dampers_editor_v2"]
+
+
+            for nombre in ["bancada", "cesto"]:
+                for axis in ["x", "y", "z"]:
+                    key = f"{axis}_{nombre}"
+                    if key in st.session_state:
+                        del st.session_state[key]
 
             st.sidebar.success("✅ Datos cargados correctamente")
             st.rerun() 
