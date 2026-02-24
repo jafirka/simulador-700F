@@ -331,9 +331,8 @@ def calcular_tabla_fuerzas(modelo, rpm_obj):
 def graficar_fuerza_tiempo(modelo, rpm, d_idx):
     # 1. Llamamos al motor de cálculo (barrido) para una sola RPM
     # Extraemos X_complex que es el vector T_d @ X que devolvimos en el paso anterior
-    resultados = ejecutar_barrido_rpm(modelo, [rpm], d_idx)
-    X_local = resultados[-1] # Suponiendo que es el último elemento devuelto
-    
+    *_, X_local = ejecutar_barrido_rpm(modelo_base, [rpm], d_idx)
+
     # 2. Vector de tiempo (2 ciclos)
     w = rpm * 2 * np.pi / 60
     t = np.linspace(0, 2 * (2 * np.pi / w), 500)
@@ -349,7 +348,7 @@ def graficar_fuerza_tiempo(modelo, rpm, d_idx):
         fasor = np.exp(1j * w * ti)
         for i, eje in enumerate(ejes):
             # Usamos la misma lógica física que el barrido: (k + iwc) * X
-            f_inst = ((ks[i] + 1j * w * cs[i]) * X_local * fasor).real
+            f_inst = ((ks[i] + 1j * w * cs[i]) * X_local[i]).real
             f_ejes[eje].append(f_inst)
 
     # 4. Crear la figura de Matplotlib
@@ -366,3 +365,4 @@ def graficar_fuerza_tiempo(modelo, rpm, d_idx):
     plt.tight_layout()
     
     return fig
+
