@@ -284,8 +284,8 @@ def ejecutar_barrido_rpm(modelo, rpm_range, d_idx):
     return rpm_range, D_desp, D_fuerza, acel_cg, vel_cg, S_desp, S_vel, S_acel, X_damper
 
 
-def calcular_tabla_fuerzas(modelo, rpm_obj):
 
+def calcular_tabla_fuerzas(modelo, rpm_obj):
     M, K, C, cg_global = modelo.armar_matrices()
     m_total = sum(c["m"] for c in modelo.componentes.values())
     peso_total = m_total * 9.81
@@ -293,7 +293,7 @@ def calcular_tabla_fuerzas(modelo, rpm_obj):
     n_d = len(modelo.dampers)
     if n_d == 0: return pd.DataFrame()
 
-    # --- 1. REPARTO ESTÁTICO (Consistente con Vertical = Y) ---
+    # --- 1. REPARTO ESTÁTICO ---
     A = np.zeros((3, n_d))
     b = np.array([peso_total, 0, 0])
     for i, d in enumerate(modelo.dampers):
@@ -305,58 +305,52 @@ def calcular_tabla_fuerzas(modelo, rpm_obj):
 
     reacciones_estaticas = np.linalg.pinv(A) @ b
 
-    # --- 2. CÁLCULO DINÁMICO LLAMANDO AL BARRIDO ---
-    # Llamamos al barrido para cada damper para obtener sus fuerzas
+    # --- 2. CÁLCULO DINÁMICO CON BARRIDO DE FASE ---
     resumen = []
     
     for i, d in enumerate(modelo.dampers):
-        # Ejecutamos el barrido solo para la RPM objetivo y para este damper específico
-        # Pasamos [rpm_obj] como lista para que el bucle for del barrido funcione
-        _, D_desp, D_fuerza, *_ = ejecutar_barrido_rpm(modelo, [rpm_obj], d_idx=i)
+        # Obtenemos la respuesta compleja del barrido
+        # Es fundamental que ejecutar_barrido_rpm devuelva los valores complejos 
+        # (asegúrate de que no esté aplicando np.abs() dentro de esa función)
+        _, _, D_fuerza_compleja, *_ = ejecutar_barrido_rpm(modelo, [rpm_obj], d_idx=i)
         
-        # Como solo enviamos una RPM, los resultados están en el índice [0] de las listas
-        f_din_x = D_fuerza["x"][0]
-        #f_din_y = D_fuerza["y"][0]
-        f_din_z = D_fuerza["z"][0]
+        # Extraemos los valores complejos (índice 0 porque solo hay una RPM)
+        fc_x = D_fuerza_compleja["x"][0]
+        fc_y = D_fuerza_compleja["y"][0]
+        fc_z = D_fuerza_compleja["z"][0]
 
-
-    
-        for d in sim.dampers:
-            T = d.get_matriz_T(sim.cg_global)
-            # f_comp es el vector de fuerza complejo (3 componentes: x, y, z)
-            f_comp = d.get_matriz_K() @ T @ f_vibracion
-            
-            # --- NUEVA LÓGICA DE BARRIDO DE FASE ---
-            pasos_giro = np.linspace(0, 2*np.pi, 36) # 36 fotos en un giro de 360°
-            max_f_y_inst = 0
-            
-            for phi in pasos_giro:
-                # Calculamos la componente Y real en el instante phi
-                # La fuerza instantánea es la parte real de (F_compleja * e^jphi)
-                f_inst_y = np.real(f_comp[1] * np.exp(1j * phi))
-                
-                # Guardamos el valor absoluto máximo alcanzado en el ciclo
-                if abs(f_inst_y) > max_f_y_inst:
-                    max_f_y_inst = abs(f_inst_y)
-            
-            # Ahora f_din_y ya no es un simple np.abs(), sino el pico real del ciclo
-            f_din_y = max_f_y_inst
-
-
+        # --- ANÁLISIS DE FASE DINÁMICA ---
+        # Buscamos el máximo real que ocurre durante un giro completo (360°)
+        pasos_giro = np.linspace(0, 2*np.pi, 36)
         
+        max_fx = 0
+        max_fy = 0
+        max_fz = 0
+        
+        for phi in pasos_giro:
+            # Proyectamos la magnitud compleja al instante de tiempo phi
+            inst_x = np.real(fc_x * np.exp(1j * phi))
+            inst_y = np.real(fc_y * np.exp(1j * phi))
+            inst_z = np.real(fc_z * np.exp(1j * phi))
+            
+            if abs(inst_x) > max_fx: max_fx = abs(inst_x)
+            if abs(inst_y) > max_fy: max_fy = abs(inst_y)
+            if abs(inst_z) > max_fz: max_fz = abs(inst_z)
+
         f_est_y = reacciones_estaticas[i]
         
         resumen.append({
             "Damper": d.nombre,
             "Carga Estática [N]": round(f_est_y, 1),
-            "Dinámica X [N]": round(f_din_x, 1),
-            "Dinámica Y [N]": round(f_din_y, 1),
-            "Dinámica Z [N]": round(f_din_z, 1),
-            "Carga TOTAL MÁX [N]": round(f_est_y + f_din_y, 1),
-            "Margen Estabilidad [N]": round(f_est_y - f_din_y, 1)
+            "Dinámica X [N]": round(max_fx, 1),
+            "Dinámica Y [N]": round(max_fy, 1),
+            "Dinámica Z [N]": round(max_fz, 1),
+            "Carga TOTAL MÁX [N]": round(f_est_y + max_fy, 1),
+            "Margen Estabilidad [N]": round(f_est_y - max_fy, 1)
         })
 
     return pd.DataFrame(resumen)
+
 
 
 
