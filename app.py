@@ -228,140 +228,6 @@ with tab_dampers:
 
 
 
-def dibujar_modelo_2d(modelo):
-    # 1. Obtener datos maestros del modelo
-    _, _, _, cg_global = modelo.armar_matrices()
-    pos_sensor = modelo.pos_sensor
-    ex = modelo.excitacion
-    
-    radio_m = ex.get('e_unbalance', 0.625) 
-    diametro_mm = radio_m * 2 * 1000
-
-    # 2. Crear subplots (1 fila, 2 columnas)
-    fig = make_subplots(
-        rows=1, cols=2,
-        subplot_titles=("<b>Vista Frontal (X-Y)</b>", "<b>Vista de Planta (X-Z)</b>"),
-        horizontal_spacing=0.15
-    )
-
-    # 3. Cargar imagen desde GitHub
-    url_github = "https://raw.githubusercontent.com/jafirka/simulador-700F/main/Centrifuga.png"    
-    encoded_string = None
-    try:
-        response = requests.get(url_github)
-        if response.status_code == 200:
-            encoded_string = base64.b64encode(response.content).decode()
-    except Exception as e:
-        print(f"Error cargando imagen: {e}")
-
-    # 4. Cálculos de posicionamiento basados en los dampers
-    if len(modelo.dampers) >= 2:
-        d_x = [d.pos[0] for d in modelo.dampers]
-        d_y = [d.pos[1] for d in modelo.dampers]
-        d_z = [d.pos[2] for d in modelo.dampers]
-
-        min_x, max_x = min(d_x), max(d_x)
-        ancho_dampers = max_x - min_x
-        centro_x = (max_x + min_x) / 2
-        base_y_dampers = max(d_y)-0.35  # Altura Y de los apoyos (ej: -1.28m)
-
-        # --- IMAGEN SOLO EN LA IZQUIERDA (COL 1) ---
-        if encoded_string:
-            # Aumentamos el ancho visual para que la carcasa cubra bien los apoyos
-            ancho_visual = ancho_dampers * 3 
-            
-            fig.add_layout_image(
-                dict(
-                    source=f"data:image/png;base64,{encoded_string}",
-                    xref="x", yref="y",
-                    x=centro_x,          # Centro en X
-                    y=base_y_dampers,    # Base en Y (enrasado)
-                    sizex=ancho_visual,
-                    sizey=ancho_visual,
-                    xanchor="center",    # Anclaje horizontal al centro
-                    yanchor="bottom",    # Anclaje vertical a la base de la imagen
-                    sizing="contain",
-                    opacity=0.7,         # Opacidad equilibrada
-                    layer="below"
-                ),
-                row=1, col=1
-            )
-        
-        # --- ÁREA DE APOYO EN PLANTA (COL 2) ---
-        from scipy.spatial import ConvexHull
-        puntos_planta = np.column_stack((d_x, d_z))
-        hull = ConvexHull(puntos_planta)
-        idx_orden = np.append(hull.vertices, hull.vertices[0])
-        
-        fig.add_trace(go.Scatter(
-            x=puntos_planta[idx_orden, 0], y=puntos_planta[idx_orden, 1],
-            fill="toself", fillcolor="rgba(128, 128, 128, 0.2)",
-            line=dict(color="rgba(128, 128, 128, 0.5)", width=1),
-            name="Área de Apoyo", showlegend=True, hoverinfo='skip'
-        ), row=1, col=2)
-
-    # 5. Dibujar elementos (CG, Dampers, Sensor) en ambas vistas
-    nombres_vistos = set()
-    def agregar_traza_dual(x_val, y_frontal, z_planta, nombre, color, simbolo, tam):
-        # Vista Frontal
-        fig.add_trace(go.Scatter(
-            x=[x_val], y=[y_frontal], mode='markers', name=nombre,
-            marker=dict(symbol=simbolo, size=tam, color=color, line=dict(width=1, color='black')),
-            showlegend=(nombre not in nombres_vistos)
-        ), row=1, col=1)
-        # Vista de Planta
-        fig.add_trace(go.Scatter(
-            x=[x_val], y=[z_planta], mode='markers', name=nombre,
-            marker=dict(symbol=simbolo, size=tam, color=color, line=dict(width=1, color='black')),
-            showlegend=False
-        ), row=1, col=2)
-        nombres_vistos.add(nombre)
-
-    # Centro de Gravedad
-    agregar_traza_dual(cg_global[0], cg_global[1], cg_global[2], 'CG Global', 'purple', 'x', 14)
-
-    # Dampers
-    for d in modelo.dampers:
-        agregar_traza_dual(d.pos[0], d.pos[1], d.pos[2], 'Aisladores (Dampers)', 'cyan', 'diamond', 10)
-
-    # Sensor
-    agregar_traza_dual(pos_sensor[0], pos_sensor[1], pos_sensor[2], 'Sensor Velocidad', 'lime', 'star', 15)
-
-    # 6. Masa de Desbalanceo (Solo en planta)
-    if ex['m_unbalance'] > 0:
-        z_unb = ex['distancia_eje']
-        e_unb = ex['e_unbalance']
-        fig.add_trace(go.Scatter(
-            x=[0, e_unb], y=[z_unb, z_unb], mode='lines', name='Radio Desbalanceo',
-            line=dict(color='red', width=2, dash='dash')
-        ), row=1, col=2)
-        fig.add_trace(go.Scatter(
-            x=[e_unb], y=[z_unb], mode='markers', name='Masa Desbalanceo',
-            marker=dict(size=12, color='red')
-        ), row=1, col=2)
-
-    # 7. Configuración final de Layout y Ejes
-    fig.update_layout(
-        font=dict(size=12),
-        legend=dict(orientation="h", yanchor="bottom", y=-0.25, xanchor="center", x=0.5),
-        height=650, 
-        plot_bgcolor='white',
-        margin=dict(t=50, b=100, l=50, r=50)
-    )
-
-    # Ajuste de rangos para que la imagen se vea centrada y grande
-    # Izquierda (Frontal)
-    fig.update_xaxes(title_text="<b>Eje X [m]</b>", range=[centro_x - 2, centro_x + 2], zeroline=True, row=1, col=1)
-    fig.update_yaxes(title_text="<b>Eje Y (Altura) [m]</b>", range=[base_y_dampers - 0.1, base_y_dampers + 4.0], zeroline=True, row=1, col=1)
-
-    # Derecha (Planta)
-    fig.update_xaxes(title_text="<b>Eje X [m]</b>", zeroline=True, autorange="reversed", row=1, col=2)
-    fig.update_yaxes(title_text="<b>Eje Z (Profundidad) [m]</b>", zeroline=True, row=1, col=2)
-
-    return fig
-
-
-
 # 3️⃣ ENSAMBLAJE FINAL (Cálculo Base)
 # Usamos las llaves del session_state para garantizar que, 
 # aunque el usuario no abra una pestaña, el simulador use el último dato guardado.
@@ -429,6 +295,10 @@ st.markdown("""
     }
     </style>
     """, unsafe_allow_html=True)
+
+
+
+
 
 
 st.subheader("🌐 Visualización 2D del Modelo")
