@@ -286,16 +286,15 @@ def ejecutar_barrido_rpm(modelo, rpm_range, d_idx):
 
 
 def calcular_tabla_fuerzas(modelo, rpm_obj):
-    # 1. Obtención de matrices globales y datos de masa
-    M, K, C, cg_global = modelo.armar_matrices() #
-    m_total = sum(c["m"] for c in modelo.componentes.values()) #
-    peso_total = m_total * 9.81 #
+
+    M, K, C, cg_global = modelo.armar_matrices()
+    m_total = sum(c["m"] for c in modelo.componentes.values())
+    peso_total = m_total * 9.81
     
-    n_d = len(modelo.dampers) #
+    n_d = len(modelo.dampers)
     if n_d == 0: return pd.DataFrame()
 
-    # --- REPARTO ESTÁTICO ---
-    # Se resuelve mediante pseudoinversa para manejar sistemas hiperestáticos
+    # --- 1. REPARTO ESTÁTICO (Consistente con Vertical = Y) ---
     A = np.zeros((3, n_d))
     b = np.array([peso_total, 0, 0])
     for i, d in enumerate(modelo.dampers):
@@ -304,63 +303,36 @@ def calcular_tabla_fuerzas(modelo, rpm_obj):
         A[0, i] = 1        # Suma de fuerzas en Y
         A[1, i] = rz       # Momento en X (Brazo Z)
         A[2, i] = -rx      # Momento en Z (Brazo X)
-    reacciones_estaticas = linalg.pinv(A) @ b #
 
-    # --- CÁLCULO DINÁMICO GLOBAL ---
-    w = rpm_obj * 2 * np.pi / 60
-    ex = modelo.excitacion
-    F0 = ex['m_unbalance'] * ex['e_unbalance'] * w**2 #
-    
-    # Brazos de palanca desde el CG al eje de giro (0,0,z)
-    lx_exc = -cg_global[0]
-    ly_exc = -cg_global[1]
-    lz_exc = ex['distancia_eje'] - cg_global[2]
+    reacciones_estaticas = np.linalg.pinv(A) @ b
 
-    # Vector de excitación complejo (Fuerza giratoria en X-Y)
-    F_vector = np.array([
-        F0,                     # Fx
-        1j * F0,                # Fy
-        0,                      # Fz
-        (1j * F0) * lz_exc,     # Mx
-        -F0 * lz_exc,           # My
-        F0 * ly_exc - (1j * F0) * lx_exc  # Mz
-    ])
-
-    # Resolver el sistema dinámico complejo: Z * X = F
-    Z = -w**2 * M + 1j*w * C + K
-    X_complejo = linalg.solve(Z, F_vector) #
-
+    # --- 2. CÁLCULO DINÁMICO LLAMANDO AL BARRIDO ---
+    # Llamamos al barrido para cada damper para obtener sus fuerzas
     resumen = []
+    
     for i, d in enumerate(modelo.dampers):
-        T = d.get_matriz_T(cg_global) #
-        # Fuerza compleja total: F = (K + jwC) * U_local
-        f_comp = (d.get_matriz_K() + 1j * w * d.get_matriz_C()) @ T @ X_complejo
+        # Ejecutamos el barrido solo para la RPM objetivo y para este damper específico
+        # Pasamos [rpm_obj] como lista para que el bucle for del barrido funcione
+        _, D_desp, D_fuerza, *_ = ejecutar_barrido_rpm(modelo, [rpm_obj], d_idx=i)
         
-        # --- BARRIDO DE FASE (360°) ---
-        # Buscamos el pico real absoluto en un ciclo completo
-        pasos_giro = np.linspace(0, 2*np.pi, 36)
-        max_din = {"x": 0, "y": 0, "z": 0}
+        # Como solo enviamos una RPM, los resultados están en el índice [0] de las listas
+        f_din_x = D_fuerza["x"][0]
+        f_din_y = D_fuerza["y"][0]
+        f_din_z = D_fuerza["z"][0]
         
-        for phi in pasos_giro:
-            for j, eje in enumerate(["x", "y", "z"]):
-                val_inst = np.real(f_comp[j] * np.exp(1j * phi)) #
-                if abs(val_inst) > max_din[eje]:
-                    max_din[eje] = abs(val_inst)
-
         f_est_y = reacciones_estaticas[i]
         
         resumen.append({
             "Damper": d.nombre,
             "Carga Estática [N]": round(f_est_y, 1),
-            "Dinámica X [N]": round(max_din["x"], 1),
-            "Dinámica Y [N]": round(max_din["y"], 1),
-            "Dinámica Z [N]": round(max_din["z"], 1),
-            "Carga TOTAL MÁX [N]": round(f_est_y + max_din["y"], 1),
-            "Margen Estabilidad [N]": round(f_est_y - max_din["y"], 1)
+            "Dinámica X [N]": round(f_din_x, 1),
+            "Dinámica Y [N]": round(f_din_y, 1),
+            "Dinámica Z [N]": round(f_din_z, 1),
+            "Carga TOTAL MÁX [N]": round(f_est_y + f_din_y, 1),
+            "Margen Estabilidad [N]": round(f_est_y - f_din_y, 1)
         })
 
     return pd.DataFrame(resumen)
-
 
 
 
