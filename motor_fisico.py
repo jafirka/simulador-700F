@@ -247,8 +247,8 @@ def ejecutar_barrido_rpm(modelo, rpm_range, d_idx):
         lz_exc =  dist - cg_global[2]
 
         F = np.array([
-            F0,                     # Fx (Real)
-            1j * F0,                # Fy (Imaginaria - Giro 90°)
+            1j * F0,                     # Fx (Real)
+            F0,                # Fy (Imaginaria - Giro 90°)
             0,                      # Fz (Nula en desbalanceo radial)
             (1j * F0) * lz_exc,     # Mx = Fy*lz - Fz*ly
             -F0 * lz_exc,           # My = Fz*lx - Fx*lz
