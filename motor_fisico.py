@@ -329,27 +329,27 @@ def calcular_tabla_fuerzas(modelo, rpm_obj):
 
 
 def graficar_fuerza_tiempo(modelo, rpm, d_idx):
-    # 1. Llamamos al motor de cálculo (barrido) para una sola RPM
-    # Extraemos X_complex que es el vector T_d @ X que devolvimos en el paso anterior
-    *_, X_local = ejecutar_barrido_rpm(modelo, [rpm], d_idx)
+    res = ejecutar_barrido_rpm(modelo, [rpm], d_idx)
+    
+    # IMPORTANTE: Si el barrido devuelve una lista de vectores complejos, 
+    # tomamos el primero. Si devuelve solo uno, lo usamos directo.
+    X_data = res[-1]
+    X_target = X_data[0] if isinstance(X_data, list) else X_data
 
-    # 2. Vector de tiempo (2 ciclos)
     w = rpm * 2 * np.pi / 60
     t = np.linspace(0, 2 * (2 * np.pi / w), 500)
     
-    # 3. Reconstrucción de la señal usando el fasor
     d = modelo.dampers[d_idx]
     ks = [d.kx, d.ky, d.kz]
     cs = [d.cx, d.cy, d.cz]
-    ejes = ["x", "y", "z"]
-    f_ejes = {eje: [] for eje in ejes}
+    f_ejes = {"x": [], "y": [], "z": []}
 
     for ti in t:
         fasor = np.exp(1j * w * ti)
-        for i, eje in enumerate(ejes):
-            # Usamos la misma lógica física que el barrido: (k + iwc) * X
-            f_inst = ((ks[i] + 1j * w * cs[i]) * X_local[i]).real
-            f_ejes[eje].append(f_inst)
+        for i, eje in enumerate(["x", "y", "z"]):
+            # La clave es que X_target[i] sea el complejo A + Bi
+            term_dinamico = (ks[i] + 1j * w * cs[i]) * X_target[i] * fasor
+            f_ejes[eje].append(term_dinamico.real)
 
     # 4. Crear la figura de Matplotlib
     fig, ax = plt.subplots(figsize=(10, 4))
