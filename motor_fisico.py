@@ -25,14 +25,10 @@ class Damper:
         d = self.pos - np.array(cg)
         lx, ly, lz = d
         return np.array([
-            #[1, 0, 0, 0,  lz, -ly],
-            #[0, 1, 0, -lz, 0,  lx],
-            #[0, 0, 1,  ly, -lx, 0]
 
-            [1, 0, 0, 0,  lz, -ly],
-            #[0, 1, 0, -lz, 0,  lx],
-            [0, 1, 0,  lz, 0, -lx]
-            [0, 0, 1,  ly, -lx, 0]
+            [1, 0, 0,    0,   lz,  -ly], # ux: Traslación X + lz*Ry - ly*Rz
+            [0, 1, 0,  -lz,    0,   lx], # uy: Traslación Y - lz*Rx + lx*Rz
+            [0, 0, 1,   ly,  -lx,    0]  # uz: Traslación Z + ly*Rx - lx*Ry
         ])
 
     def get_matriz_K(self): return np.diag([self.kx, self.ky, self.kz])
