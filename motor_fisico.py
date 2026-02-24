@@ -286,16 +286,16 @@ def ejecutar_barrido_rpm(modelo, rpm_range, d_idx):
 
 
 def calcular_tabla_fuerzas(modelo, rpm_obj):
-    # 1. Preparación de matrices y datos globales
-    M, K, C, cg_global = modelo.armar_matrices()
-    m_total = sum(c["m"] for c in modelo.componentes.values())
-    peso_total = m_total * 9.81
+    # 1. Obtención de matrices globales y datos de masa
+    M, K, C, cg_global = modelo.armar_matrices() #
+    m_total = sum(c["m"] for c in modelo.componentes.values()) #
+    peso_total = m_total * 9.81 #
     
-    n_d = len(modelo.dampers)
+    n_d = len(modelo.dampers) #
     if n_d == 0: return pd.DataFrame()
 
     # --- REPARTO ESTÁTICO ---
-    # Calculamos cómo se distribuye el peso considerando la posición del CG
+    # Se resuelve mediante pseudoinversa para manejar sistemas hiperestáticos
     A = np.zeros((3, n_d))
     b = np.array([peso_total, 0, 0])
     for i, d in enumerate(modelo.dampers):
@@ -304,19 +304,19 @@ def calcular_tabla_fuerzas(modelo, rpm_obj):
         A[0, i] = 1        # Suma de fuerzas en Y
         A[1, i] = rz       # Momento en X (Brazo Z)
         A[2, i] = -rx      # Momento en Z (Brazo X)
-    reacciones_estaticas = linalg.pinv(A) @ b
+    reacciones_estaticas = linalg.pinv(A) @ b #
 
-    # --- CÁLCULO DINÁMICO CON BARRIDO DE FASE ---
+    # --- CÁLCULO DINÁMICO GLOBAL ---
     w = rpm_obj * 2 * np.pi / 60
     ex = modelo.excitacion
-    F0 = ex['m_unbalance'] * ex['e_unbalance'] * w**2
+    F0 = ex['m_unbalance'] * ex['e_unbalance'] * w**2 #
     
-    # Brazos de palanca referidos al CG global
+    # Brazos de palanca desde el CG al eje de giro (0,0,z)
     lx_exc = -cg_global[0]
     ly_exc = -cg_global[1]
     lz_exc = ex['distancia_eje'] - cg_global[2]
 
-    # Vector de excitación complejo (Fuerza centrífuga giratoria)
+    # Vector de excitación complejo (Fuerza giratoria en X-Y)
     F_vector = np.array([
         F0,                     # Fx
         1j * F0,                # Fy
@@ -326,24 +326,24 @@ def calcular_tabla_fuerzas(modelo, rpm_obj):
         F0 * ly_exc - (1j * F0) * lx_exc  # Mz
     ])
 
-    # Resolver el sistema dinámico complejo una sola vez
+    # Resolver el sistema dinámico complejo: Z * X = F
     Z = -w**2 * M + 1j*w * C + K
-    X_complejo = linalg.solve(Z, F_vector)
+    X_complejo = linalg.solve(Z, F_vector) #
 
     resumen = []
     for i, d in enumerate(modelo.dampers):
-        T = d.get_matriz_T(cg_global)
-        # Fuerza compleja total en el damper: F = (K + jwC) * T * X
+        T = d.get_matriz_T(cg_global) #
+        # Fuerza compleja total: F = (K + jwC) * U_local
         f_comp = (d.get_matriz_K() + 1j * w * d.get_matriz_C()) @ T @ X_complejo
         
-        # Análisis de "Foto Instantánea": Buscamos el máximo real en un ciclo
+        # --- BARRIDO DE FASE (360°) ---
+        # Buscamos el pico real absoluto en un ciclo completo
         pasos_giro = np.linspace(0, 2*np.pi, 36)
         max_din = {"x": 0, "y": 0, "z": 0}
         
         for phi in pasos_giro:
             for j, eje in enumerate(["x", "y", "z"]):
-                # Proyección de la parte real del fasor en el tiempo
-                val_inst = np.real(f_comp[j] * np.exp(1j * phi))
+                val_inst = np.real(f_comp[j] * np.exp(1j * phi)) #
                 if abs(val_inst) > max_din[eje]:
                     max_din[eje] = abs(val_inst)
 
