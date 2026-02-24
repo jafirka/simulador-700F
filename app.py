@@ -1,11 +1,6 @@
 from motor_fisico import *
 
-import requests
-import base64
-import io
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-import numpy as np
+
 
 
 # ==========================================

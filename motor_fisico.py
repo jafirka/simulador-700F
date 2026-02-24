@@ -9,6 +9,12 @@ import pandas as pd
 import re
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+import requests
+import base64
+import io
+
+
+
 
 # ==========================================
 # 1️⃣ TUS CLASES
