@@ -331,7 +331,7 @@ def calcular_tabla_fuerzas(modelo, rpm_obj):
 def graficar_fuerza_tiempo(modelo, rpm, d_idx):
     # 1. Llamamos al motor de cálculo (barrido) para una sola RPM
     # Extraemos X_complex que es el vector T_d @ X que devolvimos en el paso anterior
-    *_, X_local = ejecutar_barrido_rpm(modelo_base, [rpm], d_idx)
+    *_, X_local = ejecutar_barrido_rpm(modelo, [rpm], d_idx)
 
     # 2. Vector de tiempo (2 ciclos)
     w = rpm * 2 * np.pi / 60
