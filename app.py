@@ -3,7 +3,11 @@ from motor_fisico import *
 import requests
 import base64
 import io
- 
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import numpy as np
+
+
 # ==========================================
 # 3️⃣ ENTORNO VISUAL (INTERFAZ)
 # ==========================================
@@ -12,13 +16,13 @@ def inicializar_estado_del_simulador():
     # --- INICIALIZADOR DE DATOS (Fuente de Verdad Única) ---
     if 'componentes_data' not in st.session_state:
         st.session_state.componentes_data = {
-            "bancada": {"m": 10542.0, "pos": [0.0, 0.0, -1.0], "I": [[9235.0, 0.0, 0.0], [0.0, 5690.0, 0.0], [0.0, 0.0, 3779.0]]},
-            "cesto": {"m": 980.0, "pos": [0.0, 0.0, 0.0], "I": [[312.0, 0.0, 0.0], [0.0, 312.0, 0.0], [0.0, 0.0, 312.0]]}
+            "bancada": {"m": 1000.0, "pos": [0.0, 0.0, 0.0], "I": [[1000.0, 0.0, 0.0], [0.0, 1000.0, 0.0], [0.0, 0.0, 1000.0]]},
+            "cesto": {"m": 1000.0, "pos": [0.0, 0.0, 0.0], "I": [[1000.0, 0.0, 0.0], [0.0, 1000.0, 0.0], [0.0, 0.0, 1000.0]]}
         }
 
     if 'configuracion_sistema' not in st.session_state:
         st.session_state.configuracion_sistema = {
-            "distancia_eje": 0.3,
+            "distancia_eje": 0.0,
             "sensor_pos": [-0.4, 0.2, 0.0],
             "diametro_cesto": 1250  # Valor por defecto (mm)
         }
@@ -31,10 +35,10 @@ def inicializar_estado_del_simulador():
 
     if 'dampers_pos_data' not in st.session_state:
         st.session_state.dampers_pos_data = [
-            {"Nombre": "D1 (Motor)", "X": -1.4, "Y": -0.4, "Z": -0.2, "Tipo": "Ref_1"},
-            {"Nombre": "D2 (Motor)", "X": 1.4, "Y":  -0.4, "Z": -0.2, "Tipo": "Ref_1"},
-            {"Nombre": "D3 (Front)", "X": -1.4, "Y": -0.4, "Z": -2.0, "Tipo": "Ref_2"},
-            {"Nombre": "D4 (Front)", "X": 1.4, "Y":  -0.4, "Z": -2.0, "Tipo": "Ref_2"},
+            {"Nombre": "D1 (frobtal)", "X": -1.4, "Y": -0.4, "Z": 1.4, "Tipo": "Ref_1"},
+            {"Nombre": "D2 (frontal)", "X": 1.4, "Y":  -0.4, "Z": 1.4, "Tipo": "Ref_1"},
+            {"Nombre": "D3 (rear)", "X": -1.4, "Y": -0.4, "Z": -1.4, "Tipo": "Ref_2"},
+            {"Nombre": "D4 (rear)", "X": 1.4, "Y":  -0.4, "Z": -1.4, "Tipo": "Ref_2"},
         ]
 
 # --- 1. INTERFAZ DE STREAMLIT ---
@@ -125,15 +129,14 @@ with tab_comp:
             
             c_m, c_p = st.columns([1, 2])
             with c_m:
-                # Eliminamos la 'key' interna para que mande el 'value' del Log
                 m_val = st.number_input(f"Masa {nombre} (kg)", value=float(datos_memoria.get("m", 0.0)))
 
             with c_p:
                 cx, cy, cz = st.columns(3)
-            px = cx.number_input(f"X [m]", value=float(pos_actual[0]), format="%.3f", key=f"x_{nombre}")
-            py = cy.number_input(f"Y [m]", value=float(pos_actual[1]), format="%.3f", key=f"y_{nombre}")
-            pz = cz.number_input(f"Z [m]", value=float(pos_actual[2]), format="%.3f", key=f"z_{nombre}")
-            
+                px = cx.number_input(f"X {nombre} [m]", value=float(pos_actual[0]), format="%.3f")
+                py = cy.number_input(f"Y {nombre} [m]", value=float(pos_actual[1]), format="%.3f")
+                pz = cz.number_input(f"Z {nombre} [m]", value=float(pos_actual[2]), format="%.3f")
+           
             st.write(f"**Matriz de Inercia (3x3) [kg·m²]**")
 
             # El data_editor es excelente para matrices
@@ -225,25 +228,23 @@ with tab_dampers:
 
 
 def dibujar_modelo_2d(modelo):
-    # 1. Obtener datos del modelo
+    # 1. Obtener datos maestros del modelo
     _, _, _, cg_global = modelo.armar_matrices()
     pos_sensor = modelo.pos_sensor
     ex = modelo.excitacion
     
-    # Obtenemos el radio desde la excentricidad guardada en la excitación
     radio_m = ex.get('e_unbalance', 0.625) 
     diametro_mm = radio_m * 2 * 1000
 
+    # 2. Crear subplots (1 fila, 2 columnas)
     fig = make_subplots(
         rows=1, cols=2,
         subplot_titles=("<b>Vista Frontal (X-Y)</b>", "<b>Vista de Planta (X-Z)</b>"),
         horizontal_spacing=0.15
     )
 
-    # --- LÓGICA DE IMAGEN DESDE GITHUB ---
-    # REEMPLAZA ESTA URL por la tuya (debe empezar por raw.githubusercontent.com)
+    # 3. Cargar imagen desde GitHub
     url_github = "https://raw.githubusercontent.com/jafirka/simulador-700F/main/Centrifuga.png"    
-    
     encoded_string = None
     try:
         response = requests.get(url_github)
@@ -252,93 +253,80 @@ def dibujar_modelo_2d(modelo):
     except Exception as e:
         print(f"Error cargando imagen: {e}")
 
-    nombres_vistos = set()
-    def agregar_traza(trace, row, col):
-        if trace.name not in nombres_vistos:
-            trace.showlegend = True
-            nombres_vistos.add(trace.name)
-        else:
-            trace.showlegend = False
-        fig.add_trace(trace, row=row, col=col)
-
-    # --- 1. ÁREA GRIS DE DAMPERS (Sombreado) ---
+    # 4. Cálculos de posicionamiento basados en los dampers
     if len(modelo.dampers) >= 2:
         d_x = [d.pos[0] for d in modelo.dampers]
         d_y = [d.pos[1] for d in modelo.dampers]
         d_z = [d.pos[2] for d in modelo.dampers]
 
-
         min_x, max_x = min(d_x), max(d_x)
         ancho_dampers = max_x - min_x
         centro_x = (max_x + min_x) / 2
-        base_y = max(d_y)
+        base_y_dampers = max(d_y)-0.35  # Altura Y de los apoyos (ej: -1.28m)
 
-        # Aplicar el fondo si se descargó correctamente
+        # --- IMAGEN SOLO EN LA IZQUIERDA (COL 1) ---
         if encoded_string:
+            # Aumentamos el ancho visual para que la carcasa cubra bien los apoyos
+            ancho_visual = ancho_dampers * 3 
+            
             fig.add_layout_image(
                 dict(
                     source=f"data:image/png;base64,{encoded_string}",
                     xref="x", yref="y",
-                    x=centro_x - (ancho_dampers / 2),
-                    y=base_y + (ancho_dampers * 0.8), # Ajuste fino de altura
-                    sizex=ancho_dampers,
-                    sizey=ancho_dampers,
+                    x=centro_x,          # Centro en X
+                    y=base_y_dampers,    # Base en Y (enrasado)
+                    sizex=ancho_visual,
+                    sizey=ancho_visual,
+                    xanchor="center",    # Anclaje horizontal al centro
+                    yanchor="bottom",    # Anclaje vertical a la base de la imagen
                     sizing="contain",
-                    opacity=0.3,
+                    opacity=0.7,         # Opacidad equilibrada
                     layer="below"
                 ),
                 row=1, col=1
             )
         
-        # Sombreado Aisladores (Dampers) usando ConvexHull para el área de apoyo
+        # --- ÁREA DE APOYO EN PLANTA (COL 2) ---
         from scipy.spatial import ConvexHull
-        puntos = np.column_stack((d_x, d_z))
-        hull = ConvexHull(puntos)
+        puntos_planta = np.column_stack((d_x, d_z))
+        hull = ConvexHull(puntos_planta)
         idx_orden = np.append(hull.vertices, hull.vertices[0])
         
         fig.add_trace(go.Scatter(
-            x=puntos[idx_orden, 0], y=puntos[idx_orden, 1],
+            x=puntos_planta[idx_orden, 0], y=puntos_planta[idx_orden, 1],
             fill="toself", fillcolor="rgba(128, 128, 128, 0.2)",
             line=dict(color="rgba(128, 128, 128, 0.5)", width=1),
-            name="Área de Apoyo (Base)", showlegend=True, hoverinfo='skip'
+            name="Área de Apoyo", showlegend=True, hoverinfo='skip'
         ), row=1, col=2)
 
-        # --- 2. RECTÁNGULO DEL CESTO ---
-        z_base_cesto = max(d_z) # Punto superior de los dampers
-        z_masa = ex['distancia_eje'] # Altura de la carga
-
+    # 5. Dibujar elementos (CG, Dampers, Sensor) en ambas vistas
+    nombres_vistos = set()
+    def agregar_traza_dual(x_val, y_frontal, z_planta, nombre, color, simbolo, tam):
+        # Vista Frontal
         fig.add_trace(go.Scatter(
-            x=[-radio_m, radio_m, radio_m, -radio_m, -radio_m],
-            y=[z_base_cesto, z_base_cesto, z_masa, z_masa, z_base_cesto],
-            fill="toself",
-            fillcolor="rgba(100, 100, 100, 0.1)",
-            line=dict(color="rgba(0, 0, 0, 0.3)", width=2, dash='dot'),
-            name=f"Cuerpo Cesto (Ø {diametro_mm:.0f}mm)",
-            showlegend=True, hoverinfo='skip'
+            x=[x_val], y=[y_frontal], mode='markers', name=nombre,
+            marker=dict(symbol=simbolo, size=tam, color=color, line=dict(width=1, color='black')),
+            showlegend=(nombre not in nombres_vistos)
+        ), row=1, col=1)
+        # Vista de Planta
+        fig.add_trace(go.Scatter(
+            x=[x_val], y=[z_planta], mode='markers', name=nombre,
+            marker=dict(symbol=simbolo, size=tam, color=color, line=dict(width=1, color='black')),
+            showlegend=False
         ), row=1, col=2)
+        nombres_vistos.add(nombre)
 
-    # --- 3. CENTRO DE GRAVEDAD GLOBAL (Único) ---
-    for r, c, y_val in [(1, 1, cg_global[1]), (1, 2, cg_global[2])]:
-        agregar_traza(go.Scatter(
-            x=[cg_global[0]], y=[y_val],
-            mode='markers', name='CG Global',
-            marker=dict(symbol='x', size=14, color='purple', line=dict(width=2))
-        ), r, c)
+    # Centro de Gravedad
+    agregar_traza_dual(cg_global[0], cg_global[1], cg_global[2], 'CG Global', 'purple', 'x', 14)
 
-    # --- 4. DAMPERS, SENSOR Y MASA ---
+    # Dampers
     for d in modelo.dampers:
-        for r, c, y_val in [(1, 1, d.pos[1]), (1, 2, d.pos[2])]:
-            agregar_traza(go.Scatter(
-                x=[d.pos[0]], y=[y_val], mode='markers', name='Aisladores (Dampers)',
-                marker=dict(symbol='diamond', size=10, color='cyan', line=dict(width=1, color='black'))
-            ), r, c)
+        agregar_traza_dual(d.pos[0], d.pos[1], d.pos[2], 'Aisladores (Dampers)', 'cyan', 'diamond', 10)
 
-    for r, c, y_val in [(1, 1, pos_sensor[1]), (1, 2, pos_sensor[2])]:
-        agregar_traza(go.Scatter(
-            x=[pos_sensor[0]], y=[y_val], mode='markers', name='Sensor Velocidad',
-            marker=dict(symbol='star', size=15, color='lime', line=dict(width=1, color='black'))
-        ), r, c)
+    # Sensor
+    agregar_traza_dual(pos_sensor[0], pos_sensor[1], pos_sensor[2], 'Sensor Velocidad', 'lime', 'star', 15)
 
+    # 6. Masa de Desbalanceo (Solo en planta)
     if ex['m_unbalance'] > 0:
         z_unb = ex['distancia_eje']
         e_unb = ex['e_unbalance']
@@ -351,27 +339,26 @@ def dibujar_modelo_2d(modelo):
             marker=dict(size=12, color='red')
         ), row=1, col=2)
 
-    # Configuración de Layout y Ejes Marcados
+    # 7. Configuración final de Layout y Ejes
     fig.update_layout(
-        font=dict(size=14),
-        legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
-        height=600, plot_bgcolor='white'
+        font=dict(size=12),
+        legend=dict(orientation="h", yanchor="bottom", y=-0.25, xanchor="center", x=0.5),
+        height=650, 
+        plot_bgcolor='white',
+        margin=dict(t=50, b=100, l=50, r=50)
     )
 
-    # Vista Frontal (X-Y): X normal (Derecha)
-    fig.update_xaxes(title_text="<b>Eje X [m]</b>", zeroline=True, row=1, col=1)
-    fig.update_yaxes(title_text="<b>Eje Y (Altura) [m]</b>", zeroline=True, row=1, col=1)
+    # Ajuste de rangos para que la imagen se vea centrada y grande
+    # Izquierda (Frontal)
+    fig.update_xaxes(title_text="<b>Eje X [m]</b>", range=[centro_x - 2, centro_x + 2], zeroline=True, row=1, col=1)
+    fig.update_yaxes(title_text="<b>Eje Y (Altura) [m]</b>", range=[base_y_dampers - 0.1, base_y_dampers + 4.0], zeroline=True, row=1, col=1)
 
-    # Vista de Planta (X-Z): Invertimos X para que sea coherente con Z hacia adelante
-    fig.update_xaxes(
-        title_text="<b>Eje X [m]</b>", 
-        zeroline=True, 
-        autorange="reversed", # <--- ESTO invierte el eje X solo en la planta
-        row=1, col=2
-    )
+    # Derecha (Planta)
+    fig.update_xaxes(title_text="<b>Eje X [m]</b>", zeroline=True, autorange="reversed", row=1, col=2)
     fig.update_yaxes(title_text="<b>Eje Z (Profundidad) [m]</b>", zeroline=True, row=1, col=2)
 
     return fig
+
 
 
 # 3️⃣ ENSAMBLAJE FINAL (Cálculo Base)
@@ -423,6 +410,13 @@ if archivo_subido is not None:
                 st.session_state.dampers_pos_data = datos_preset["dampers_pos_data"]
                 if "pos_dampers_editor_v2" in st.session_state:
                     del st.session_state["pos_dampers_editor_v2"]
+
+
+            for nombre in ["bancada", "cesto"]:
+                for axis in ["x", "y", "z"]:
+                    key = f"{axis}_{nombre}"
+                    if key in st.session_state:
+                        del st.session_state[key]
 
             st.sidebar.success("✅ Datos cargados correctamente")
             st.rerun() 
@@ -499,11 +493,9 @@ modelo_base = SimuladorCentrifuga(config_base)
 st.subheader("🌐 Visualización 2D del Modelo")
 
 # Asegúrate de que el modelo_base ya esté inicializado antes de llamar a dibujar_modelo_3d
-if 'modelo_base' in locals() or 'modelo_base' in globals(): # Comprueba si modelo_base existe
-    fig_2d = dibujar_modelo_2d(modelo_base)
-    st.plotly_chart(fig_2d, use_container_width=True)
-else:
-    st.warning("Carga una configuración o ajusta los parámetros para ver el modelo 3D.")
+fig_2d = dibujar_modelo_2d(modelo_base)
+st.plotly_chart(fig_2d, use_container_width=True)
+
 
 st.divider()
 
