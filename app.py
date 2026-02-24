@@ -490,6 +490,13 @@ d_idx = int(seleccion.split(":")[0])
 
 # --- 4. EJECUTAR AMBAS SIMULACIONES ---
 modelo_base = SimuladorCentrifuga(config_base)
+f_res_rpm, modos = modelo_base.calcular_frecuencias_naturales()
+# RPM de operación
+rpm_range = np.linspace(10, rpm_obj*1.2, 1000)
+idx_op = np.argmin(np.abs(rpm_range - rpm_obj))
+rpm_range, D_desp, D_fuerza, acel_cg, vel_cg, S_desp, S_vel, S_acel, X_damper = ejecutar_barrido_rpm(modelo_base, rpm_range, d_idx)
+
+
 
 st.subheader("🌐 Visualización 2D del Modelo")
 
@@ -498,26 +505,24 @@ fig_2d = dibujar_modelo_2d(modelo_base)
 st.plotly_chart(fig_2d, use_container_width=True)
 
 
-st.divider()
-
-f_res_rpm, modos = modelo_base.calcular_frecuencias_naturales()
-# RPM de operación
-
-rpm_range = np.linspace(10, rpm_obj*1.2, 1000)
-idx_op = np.argmin(np.abs(rpm_range - rpm_obj))
-
-rpm_range, D_desp, D_fuerza, acel_cg, vel_cg, S_desp, S_vel, S_acel, X_damper = ejecutar_barrido_rpm(modelo_base, rpm_range, d_idx)
 
 st.divider()
 st.subheader("⏱️ Respuesta Temporal de Fuerzas")
 st.info(f"Mostrando el comportamiento oscilatorio para el Damper seleccionado a {rpm_obj} RPM.")
 
-# Llamamos a la función y le pasamos el objeto figura a Streamlit
-fig_tiempo = graficar_fuerza_tiempo(modelo_base, rpm_obj, d_idx)
-st.pyplot(fig_tiempo)
-# Llamamos a la función y le pasamos el objeto figura a Streamlit
-fig_tiempo = graficar_fuerza_tiempo(modelo_base, rpm_obj, 1)
-st.pyplot(fig_tiempo)
+columnas = [col1, col2, col3, col4]
+
+for i, col in enumerate(columnas):
+    with col:
+        # Generamos la figura usando nuestra función unificada
+        fig = graficar_fuerza_tiempo(modelo_base, rpm_obj, i)
+            
+        # Ajustamos el tamaño de la fuente para que quepa bien en columnas
+        fig.update_layout(margin=dict(l=20, r=20, t=40, b=20)) 
+            
+        st.pyplot(fig)
+
+
 
 # ==========================================
 # 📄 INTRODUCCIÓN Y MEMORIA DE CÁLCULO
