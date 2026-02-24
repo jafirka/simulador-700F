@@ -227,6 +227,56 @@ with tab_dampers:
                 })
 
 
+def graficar_fuerza_tiempo(modelo, rpm, d_idx):
+    M, K, C, cg_global = modelo.armar_matrices()
+    w = rpm * 2 * np.pi / 60
+    
+    # 1. Resolución compleja
+    ex = modelo.excitacion
+    F0 = ex['m_unbalance'] * ex['e_unbalance'] * (w**2)
+    arm_y = ex['distancia_eje'] - cg_global[1]
+    
+    F_vec = np.zeros(6, dtype=complex)
+    F_vec[0], F_vec[2] = F0, F0 * 1j 
+    F_vec[3], F_vec[5] = (F0 * 1j) * arm_y, -F0 * arm_y
+
+    Z = -w**2 * M + 1j*w * C + K
+    X_resp = np.linalg.solve(Z, F_vec)
+
+    # 2. Vector de tiempo (2 ciclos)
+    t = np.linspace(0, 2 * (2 * np.pi / w), 500)
+    
+    # 3. Datos del damper seleccionado
+    d = modelo.dampers[d_idx]
+    T_d = d.get_matriz_T(cg_global)
+    X_local = T_d @ X_resp
+    
+    f_ejes = {"x": [], "y": [], "z": []}
+    for ti in t:
+        fasor = np.exp(1j * w * ti)
+        for i, eje in enumerate(["x", "y", "z"]):
+            # Fuerza instantánea = Re( (k + iwc) * X * exp(iwt) )
+            f_inst = ((d.kx + 1j * w * d.cx) * X_local[i] * fasor).real
+            f_ejes[eje].append(f_inst)
+
+    # 4. Crear la figura de Matplotlib
+    fig, ax = plt.subplots(figsize=(10, 4))
+    ax.plot(t, f_ejes["x"], label="Fuerza X (Lateral)", color="tab:blue", alpha=0.7)
+    ax.plot(t, f_ejes["y"], label="Fuerza Y (Vertical)", color="tab:orange", linewidth=2.5)
+    ax.plot(t, f_ejes["z"], label="Fuerza Z (Axial)", color="tab:green", alpha=0.7)
+    
+    ax.set_title(f"Análisis Temporal: Damper {d.nombre} a {rpm} RPM")
+    ax.set_xlabel("Tiempo [s]")
+    ax.set_ylabel("Fuerza Dinámica [N]")
+    ax.legend(loc='upper right')
+    ax.grid(True, linestyle='--', alpha=0.5)
+    plt.tight_layout()
+    
+    return fig
+
+
+
+
 def dibujar_modelo_2d(modelo):
     # 1. Obtener datos maestros del modelo
     _, _, _, cg_global = modelo.armar_matrices()
@@ -506,6 +556,17 @@ rpm_range = np.linspace(10, rpm_obj*1.2, 1000)
 idx_op = np.argmin(np.abs(rpm_range - rpm_obj))
 
 rpm_range, D_desp, D_fuerza, acel_cg, vel_cg, S_desp, S_vel, S_acel = ejecutar_barrido_rpm(modelo_base, rpm_range, d_idx)
+
+st.divider()
+st.subheader("⏱️ Respuesta Temporal de Fuerzas")
+st.info(f"Mostrando el comportamiento oscilatorio para el Damper seleccionado a {rpm_obj} RPM.")
+
+# Llamamos a la función y le pasamos el objeto figura a Streamlit
+fig_tiempo = graficar_fuerza_tiempo(modelo_base, rpm_obj, d_idx)
+st.pyplot(fig_tiempo)
+# Llamamos a la función y le pasamos el objeto figura a Streamlit
+fig_tiempo = graficar_fuerza_tiempo(modelo_base, rpm_obj, 1)
+st.pyplot(fig_tiempo)
 
 # ==========================================
 # 📄 INTRODUCCIÓN Y MEMORIA DE CÁLCULO
