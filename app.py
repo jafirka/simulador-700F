@@ -510,16 +510,25 @@ st.divider()
 st.subheader("⏱️ Respuesta Temporal de Fuerzas")
 st.info(f"Mostrando el comportamiento oscilatorio para el Damper seleccionado a {rpm_obj} RPM.")
 
-columnas = [col1, col2, col3, col4]
+# 1. Creamos las filas de columnas (2 columnas por fila)
+fila1 = st.columns(2)
+fila2 = st.columns(2)
 
+# 2. Las unimos en una lista plana para iterar fácilmente
+columnas = fila1 + fila2 
+
+# 3. Iteramos sobre los 4 dampers (D1 a D4)
 for i, col in enumerate(columnas):
     with col:
-        # Generamos la figura usando nuestra función unificada
+        # Obtenemos el nombre del damper para el título
+        nombre_d = modelo_base.dampers[i].nombre
+        
+        # Generamos la figura
+        # Nota: He quitado fig.update_layout porque eso es para Plotly. 
+        # Si usas Matplotlib, el tamaño se controla en plt.subplots(figsize=...)
         fig = graficar_fuerza_tiempo(modelo_base, rpm_obj, i)
-            
-        # Ajustamos el tamaño de la fuente para que quepa bien en columnas
-        fig.update_layout(margin=dict(l=20, r=20, t=40, b=20)) 
-            
+        
+        # Mostramos en Streamlit
         st.pyplot(fig)
 
 
