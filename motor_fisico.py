@@ -274,14 +274,11 @@ def ejecutar_barrido_rpm(modelo, rpm_range, d_idx):
           # aceleración [g]
           S_acel[eje].append((w**2) * np.abs(U_sensor[i])/9.81)
     
-    return rpm_range, D_desp, D_fuerza, acel_cg, vel_cg, S_desp, S_vel, S_acel
+    return rpm_range, D_desp, D_fuerza, acel_cg, vel_cg, S_desp, S_vel, S_acel, X_damper
 
 
 def calcular_tabla_fuerzas(modelo, rpm_obj):
-    """
-    Versión espejada de ejecutar_barrido_rpm para garantizar coincidencia total.
-    Usa la convención: Vertical = Y, Planta = X-Z.
-    """
+
     M, K, C, cg_global = modelo.armar_matrices()
     m_total = sum(c["m"] for c in modelo.componentes.values())
     peso_total = m_total * 9.81
@@ -301,57 +298,71 @@ def calcular_tabla_fuerzas(modelo, rpm_obj):
 
     reacciones_estaticas = np.linalg.pinv(A) @ b
 
-    # --- 2. CÁLCULO DINÁMICO (Copia exacta de la lógica del barrido) ---
-    w = rpm_obj * 2 * np.pi / 60
-    ex = modelo.excitacion
-    F0 = ex['m_unbalance'] * ex['e_unbalance'] * w**2
-    
-    F = np.zeros(6, dtype=complex)
-    # Brazo en Z como en tu barrido: arm = dist - cg_global[2]
-    dist = ex['distancia_eje'] - cg_global[2] 
-    
-    # Brazos desde el CG global al punto de aplicación de la fuerza (en el eje de rotación)
-    # Si el eje de rotación está en (X=0, Y=0) y se extiende en Z:
-    lx_exc = -cg_global[0]
-    ly_exc = -cg_global[1]
-    # OJO: ex['distancia_eje'] debe ser la coordenada Z absoluta del plato de desbalanceo
-    lz_exc = ex['distancia_eje'] - cg_global[2] 
-    
-    F = np.array([
-        F0,                               # Fx (Centrífuga en X)
-        1j * F0,                          # Fy (Centrífuga en Y, desfasada 90°)
-        0,                                # Fz (Nula para desbalanceo radial)
-        (1j * F0) * lz_exc,               # Mx: La fuerza en Y genera momento sobre eje X
-        -F0 * lz_exc,                      # My: La fuerza en X genera momento sobre eje Y
-        F0 * ly_exc - (1j * F0) * lx_exc  # Mz: Momento torsional si el CG no está en (0,0)
-    ])
-
-
-    Z = -w**2 * M + 1j*w * C + K
-    X = linalg.solve(Z, F)
-
+    # --- 2. CÁLCULO DINÁMICO LLAMANDO AL BARRIDO ---
+    # Llamamos al barrido para cada damper para obtener sus fuerzas
     resumen = []
+    
     for i, d in enumerate(modelo.dampers):
-        T_d = d.get_matriz_T(cg_global)
-        X_d = T_d @ X
-        ks, cs = [d.kx, d.ky, d.kz], [d.cx, d.cy, d.cz]
+        # Ejecutamos el barrido solo para la RPM objetivo y para este damper específico
+        # Pasamos [rpm_obj] como lista para que el bucle for del barrido funcione
+        _, D_desp, D_fuerza, *_ = ejecutar_barrido_rpm(modelo, [rpm_obj], d_idx=i)
         
-        # Amplitudes dinámicas (idéntico al barrido)
-        f_din = [np.abs((ks[j] + 1j * w * cs[j]) * X_d[j]) for j in range(3)]
-
-
-
+        # Como solo enviamos una RPM, los resultados están en el índice [0] de las listas
+        f_din_x = D_fuerza["x"][0]
+        f_din_y = D_fuerza["y"][0]
+        f_din_z = D_fuerza["z"][0]
+        
         f_est_y = reacciones_estaticas[i]
         
-        # En tu barrido la fuerza vertical es el eje Y (índice 1)
         resumen.append({
             "Damper": d.nombre,
             "Carga Estática [N]": round(f_est_y, 1),
-            "Dinámica X [N]": round(f_din[0], 1),
-            "Dinámica Y [N]": round(f_din[1], 1),
-            "Dinámica Z [N]": round(f_din[2], 1),
-            "Carga TOTAL MÁX [N]": round(f_est_y + f_din[1], 1),
-            "Margen Estabilidad [N]": round(f_est_y - f_din[1], 1)
+            "Dinámica X [N]": round(f_din_x, 1),
+            "Dinámica Y [N]": round(f_din_y, 1),
+            "Dinámica Z [N]": round(f_din_z, 1),
+            "Carga TOTAL MÁX [N]": round(f_est_y + f_din_y, 1),
+            "Margen Estabilidad [N]": round(f_est_y - f_din_y, 1)
         })
 
     return pd.DataFrame(resumen)
+
+
+
+def graficar_fuerza_tiempo(modelo, rpm, d_idx):
+    # 1. Llamamos al motor de cálculo (barrido) para una sola RPM
+    # Extraemos X_complex que es el vector T_d @ X que devolvimos en el paso anterior
+    resultados = ejecutar_barrido_rpm(modelo, [rpm], d_idx)
+    X_local = resultados[-1] # Suponiendo que es el último elemento devuelto
+    
+    # 2. Vector de tiempo (2 ciclos)
+    w = rpm * 2 * np.pi / 60
+    t = np.linspace(0, 2 * (2 * np.pi / w), 500)
+    
+    # 3. Reconstrucción de la señal usando el fasor
+    d = modelo.dampers[d_idx]
+    ks = [d.kx, d.ky, d.kz]
+    cs = [d.cx, d.cy, d.cz]
+    ejes = ["x", "y", "z"]
+    f_ejes = {eje: [] for eje in ejes}
+
+    for ti in t:
+        fasor = np.exp(1j * w * ti)
+        for i, eje in enumerate(ejes):
+            # Usamos la misma lógica física que el barrido: (k + iwc) * X
+            f_inst = ((ks[i] + 1j * w * cs[i]) * X_local * fasor).real
+            f_ejes[eje].append(f_inst)
+
+    # 4. Crear la figura de Matplotlib
+    fig, ax = plt.subplots(figsize=(10, 4))
+    ax.plot(t, f_ejes["x"], label="Fuerza X (Lateral)", color="tab:blue", alpha=0.7)
+    ax.plot(t, f_ejes["y"], label="Fuerza Y (Vertical)", color="tab:orange", linewidth=2.5)
+    ax.plot(t, f_ejes["z"], label="Fuerza Z (Axial)", color="tab:green", alpha=0.7)
+    
+    ax.set_title(f"Análisis Temporal: Damper {d.nombre} a {rpm} RPM")
+    ax.set_xlabel("Tiempo [s]")
+    ax.set_ylabel("Fuerza Dinámica [N]")
+    ax.legend(loc='upper right')
+    ax.grid(True, linestyle='--', alpha=0.5)
+    plt.tight_layout()
+    
+    return fig
