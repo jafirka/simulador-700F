@@ -380,103 +380,6 @@ config_base = {
     "tipos_dampers": pd.DataFrame(st.session_state.dampers_prop_data).set_index("Tipo").to_dict('index')
 }
 
-st.sidebar.divider()
-st.sidebar.header("💾 Gestión de Archivos")
-
-# --- 1. SECCIÓN DE IMPORTAR (Cargar) ---
-archivo_subido = st.sidebar.file_uploader("📂 Subir configuración (.json)", type=["json"])
-
-if archivo_subido is not None:
-    # Agregamos el botón para confirmar la carga
-    if st.sidebar.button("📥 Aplicar configuración del archivo"):
-        try:
-            datos_preset = json.load(archivo_subido)
-            
-            # Actualizamos los componentes
-            if "componentes_data" in datos_preset:
-                for nombre, data in datos_preset["componentes_data"].items():
-                    if nombre in st.session_state.componentes_data:
-                        st.session_state.componentes_data[nombre].update(data)            
-            
-            if "configuracion_sistema" in datos_preset:
-                st.session_state.configuracion_sistema.update(datos_preset["configuracion_sistema"])
-            
-            # Actualización de Dampers
-            if "dampers_prop_data" in datos_preset:
-                st.session_state.dampers_prop_data = datos_preset["dampers_prop_data"]
-                if "editor_tipos_nombres" in st.session_state:
-                    del st.session_state["editor_tipos_nombres"]
-            
-            if "dampers_pos_data" in datos_preset:
-                st.session_state.dampers_pos_data = datos_preset["dampers_pos_data"]
-                if "pos_dampers_editor_v2" in st.session_state:
-                    del st.session_state["pos_dampers_editor_v2"]
-
-
-            for nombre in ["bancada", "cesto"]:
-                for axis in ["x", "y", "z"]:
-                    key = f"{axis}_{nombre}"
-                    if key in st.session_state:
-                        del st.session_state[key]
-
-            st.sidebar.success("✅ Datos cargados correctamente")
-            st.rerun() 
-            
-        except Exception as e:
-            st.sidebar.error(f"Error al procesar el archivo: {e}")
-
-# 3️⃣ GUARDADO ARCHIVO
-
-def json_compacto(obj):
-    """
-    Convierte a JSON colapsando listas de números en una sola línea
-    sin duplicar comas.
-    """
-    # 1. Generar JSON estándar
-    content = json.dumps(obj, indent=4, sort_keys=True)
-    
-    # 2. Regex corregida: 
-    # Busca una lista que empiece por '[', contenga números, comas, espacios y cierre con ']'
-    # Luego elimina los saltos de línea y espacios extra dentro de esa lista.
-    def limpiar_lista(match):
-        return match.group(0).replace("\n", "").replace(" ", "").replace(",", ", ")
-
-    # Esta regex identifica patrones de listas de números/floats
-    content = re.sub(r'\[(?:\s*[-+]?\d*\.?\d+(?:e[-+]?\d+)?\s*,?)+ \s*\]', limpiar_lista, content)
-    
-    # Limpieza final de seguridad por si quedaron espacios raros
-    content = content.replace(", ]", "]").replace("[, ", "[")
-    
-    return content
-
-# --- FUNCIONALIDAD DE EXPORTAR (Download) ---
-# Preparamos el diccionario con todo lo que hay en memoria actualmente
-datos_a_exportar = {
-    # Agrupamos todo lo referente a la física global del sistema
-    "configuracion_sistema": {
-        "distancia_eje": st.session_state.configuracion_sistema["distancia_eje"],
-        "diametro_cesto": st.session_state.configuracion_sistema["diametro_cesto"], 
-        "sensor_pos": st.session_state.configuracion_sistema["sensor_pos"]
-    },
-    # Los diccionarios de componentes (Bancada, Cesto)
-    "componentes_data": st.session_state.componentes_data,
-    
-    # Las dos tablas de los Dampers (Propiedades y Ubicaciones)
-    "dampers_prop_data": st.session_state.dampers_prop_data,
-    "dampers_pos_data": st.session_state.dampers_pos_data
-}
-
-# Convertir a string JSON
-json_string = json_compacto(datos_a_exportar)
-st.sidebar.download_button(
-    label="📥 Descargar Configuración (.json)",
-    data=json_string,
-    file_name="config_centrifuga.json",
-    mime="application/json",
-    help="Guarda todos los datos actuales en un archivo para usarlos después."
-)
-st.sidebar.write("---")
-
 
 # --- SELECTOR DE DAMPER ---
 # Accedemos directamente al diccionario de configuración
@@ -496,6 +399,36 @@ rpm_range = np.linspace(10, rpm_obj*1.2, 1000)
 idx_op = np.argmin(np.abs(rpm_range - rpm_obj))
 rpm_range, D_desp, D_fuerza, acel_cg, vel_cg, S_desp, S_vel, S_acel, X_damper = ejecutar_barrido_rpm(modelo_base, rpm_range, d_idx)
 
+
+
+
+# ==========================================
+# 📄 INTRODUCCIÓN Y MEMORIA DE CÁLCULO
+# ==========================================
+st.markdown(f"""
+### 📋 Resultados
+---
+""")
+
+st.markdown("""
+    <style>
+    @media print {
+        /* Ocultar barra lateral y botones al imprimir */
+        [data-testid="stSidebar"], .stButton, header, footer {
+            display: none !important;
+        }
+        /* Ajustar el ancho del contenedor principal */
+        .main .block-container {
+            max-width: 100%;
+            padding: 1rem;
+        }
+        /* Forzar que los gráficos no se corten entre páginas */
+        .stPlotlyChart, .css-12w0qpk {
+            page-break-inside: avoid;
+        }
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
 
 st.subheader("🌐 Visualización 2D del Modelo")
@@ -531,35 +464,6 @@ for i, col in enumerate(columnas):
         # Mostramos en Streamlit
         st.pyplot(fig)
 
-
-
-# ==========================================
-# 📄 INTRODUCCIÓN Y MEMORIA DE CÁLCULO
-# ==========================================
-st.markdown(f"""
-### 📋 Resultados
----
-""")
-
-st.markdown("""
-    <style>
-    @media print {
-        /* Ocultar barra lateral y botones al imprimir */
-        [data-testid="stSidebar"], .stButton, header, footer {
-            display: none !important;
-        }
-        /* Ajustar el ancho del contenedor principal */
-        .main .block-container {
-            max-width: 100%;
-            padding: 1rem;
-        }
-        /* Forzar que los gráficos no se corten entre páginas */
-        .stPlotlyChart, .css-12w0qpk {
-            page-break-inside: avoid;
-        }
-    }
-    </style>
-    """, unsafe_allow_html=True)
 
 
 
@@ -807,3 +711,101 @@ if st.button("Preparar Informe para PDF"):
         }
         </style>
     """, unsafe_allow_html=True)
+
+
+st.sidebar.divider()
+st.sidebar.header("💾 Gestión de Archivos")
+
+# --- 1. SECCIÓN DE IMPORTAR (Cargar) ---
+archivo_subido = st.sidebar.file_uploader("📂 Subir configuración (.json)", type=["json"])
+
+if archivo_subido is not None:
+    # Agregamos el botón para confirmar la carga
+    if st.sidebar.button("📥 Aplicar configuración del archivo"):
+        try:
+            datos_preset = json.load(archivo_subido)
+            
+            # Actualizamos los componentes
+            if "componentes_data" in datos_preset:
+                for nombre, data in datos_preset["componentes_data"].items():
+                    if nombre in st.session_state.componentes_data:
+                        st.session_state.componentes_data[nombre].update(data)            
+            
+            if "configuracion_sistema" in datos_preset:
+                st.session_state.configuracion_sistema.update(datos_preset["configuracion_sistema"])
+            
+            # Actualización de Dampers
+            if "dampers_prop_data" in datos_preset:
+                st.session_state.dampers_prop_data = datos_preset["dampers_prop_data"]
+                if "editor_tipos_nombres" in st.session_state:
+                    del st.session_state["editor_tipos_nombres"]
+            
+            if "dampers_pos_data" in datos_preset:
+                st.session_state.dampers_pos_data = datos_preset["dampers_pos_data"]
+                if "pos_dampers_editor_v2" in st.session_state:
+                    del st.session_state["pos_dampers_editor_v2"]
+
+
+            for nombre in ["bancada", "cesto"]:
+                for axis in ["x", "y", "z"]:
+                    key = f"{axis}_{nombre}"
+                    if key in st.session_state:
+                        del st.session_state[key]
+
+            st.sidebar.success("✅ Datos cargados correctamente")
+            st.rerun() 
+            
+        except Exception as e:
+            st.sidebar.error(f"Error al procesar el archivo: {e}")
+
+# 3️⃣ GUARDADO ARCHIVO
+
+def json_compacto(obj):
+    """
+    Convierte a JSON colapsando listas de números en una sola línea
+    sin duplicar comas.
+    """
+    # 1. Generar JSON estándar
+    content = json.dumps(obj, indent=4, sort_keys=True)
+    
+    # 2. Regex corregida: 
+    # Busca una lista que empiece por '[', contenga números, comas, espacios y cierre con ']'
+    # Luego elimina los saltos de línea y espacios extra dentro de esa lista.
+    def limpiar_lista(match):
+        return match.group(0).replace("\n", "").replace(" ", "").replace(",", ", ")
+
+    # Esta regex identifica patrones de listas de números/floats
+    content = re.sub(r'\[(?:\s*[-+]?\d*\.?\d+(?:e[-+]?\d+)?\s*,?)+ \s*\]', limpiar_lista, content)
+    
+    # Limpieza final de seguridad por si quedaron espacios raros
+    content = content.replace(", ]", "]").replace("[, ", "[")
+    
+    return content
+
+# --- FUNCIONALIDAD DE EXPORTAR (Download) ---
+# Preparamos el diccionario con todo lo que hay en memoria actualmente
+datos_a_exportar = {
+    # Agrupamos todo lo referente a la física global del sistema
+    "configuracion_sistema": {
+        "distancia_eje": st.session_state.configuracion_sistema["distancia_eje"],
+        "diametro_cesto": st.session_state.configuracion_sistema["diametro_cesto"], 
+        "sensor_pos": st.session_state.configuracion_sistema["sensor_pos"]
+    },
+    # Los diccionarios de componentes (Bancada, Cesto)
+    "componentes_data": st.session_state.componentes_data,
+    
+    # Las dos tablas de los Dampers (Propiedades y Ubicaciones)
+    "dampers_prop_data": st.session_state.dampers_prop_data,
+    "dampers_pos_data": st.session_state.dampers_pos_data
+}
+
+# Convertir a string JSON
+json_string = json_compacto(datos_a_exportar)
+st.sidebar.download_button(
+    label="📥 Descargar Configuración (.json)",
+    data=json_string,
+    file_name="config_centrifuga.json",
+    mime="application/json",
+    help="Guarda todos los datos actuales en un archivo para usarlos después."
+)
+st.sidebar.write("---")
