@@ -24,16 +24,16 @@ def inicializar_estado_del_simulador():
 
     if 'dampers_prop_data' not in st.session_state:
         st.session_state.dampers_prop_data = [
-            {"Tipo": "Ref_1", "kx": 1.5e6, "ky": 1.5e6, "kz": 1.5e6, "cx": 5.5e4, "cy": 5.5e4, "cz": 5.5e4},
-            {"Tipo": "Ref_2", "kx": 1.5e6,  "ky": 1.5e6,  "kz": 1.5e6, "cx": 5.5e4, "cy": 5.5e4, "cz": 5.5e4}
+            {"Tipo": "ZPVL_XXX", "kx": 1.5e6, "ky": 1.5e6, "kz": 1.5e6, "cx": 5.5e4, "cy": 5.5e4, "cz": 5.5e4},
+            {"Tipo": "ZPVL_YYY", "kx": 1.5e6,  "ky": 1.5e6,  "kz": 1.5e6, "cx": 5.5e4, "cy": 5.5e4, "cz": 5.5e4}
         ]
 
     if 'dampers_pos_data' not in st.session_state:
         st.session_state.dampers_pos_data = [
-            {"Nombre": "D1 (frobtal)", "X": -1.4, "Y": -0.4, "Z": 1.4, "Tipo": "Ref_1"},
-            {"Nombre": "D2 (frontal)", "X": 1.4, "Y":  -0.4, "Z": 1.4, "Tipo": "Ref_1"},
-            {"Nombre": "D3 (rear)", "X": -1.4, "Y": -0.4, "Z": -1.4, "Tipo": "Ref_2"},
-            {"Nombre": "D4 (rear)", "X": 1.4, "Y":  -0.4, "Z": -1.4, "Tipo": "Ref_2"},
+            {"Nombre": "D1 (Frontal)", "X": -1.4, "Y": -0.4, "Z": 1.4, "Tipo": "ZPVL_XXX"},
+            {"Nombre": "D2 (Frontal)", "X": 1.4, "Y":  -0.4, "Z": 1.4, "Tipo": "ZPVL_XXX"},
+            {"Nombre": "D3 (Posterior)", "X": -1.4, "Y": -0.4, "Z": -1.4, "Tipo": "ZPVL_YYY"},
+            {"Nombre": "D4 (Posterior)", "X": 1.4, "Y":  -0.4, "Z": -1.4, "Tipo": "ZPVL_YYY"},
         ]
 
 # --- 1. INTERFAZ DE STREAMLIT ---
@@ -55,7 +55,6 @@ rpm_obj = st.sidebar.number_input("RPM nominales", value=1100)
 
 # --- SECCIÓN: PESTAÑAS ---
 st.header("🧱 Configuración del Sistema")
-
 
 # Contenedor para los datos procesados en los tabs
 comp_editados = {} 
@@ -351,13 +350,17 @@ if not df_cargas.empty:
 
 st.markdown("""
 ### 💡 Guía de Interpretación de Cargas
----
 * **Carga Estática:** Es el peso de la máquina (Bancada + Cesto) distribuido en cada apoyo según la posición del Centro de Gravedad (CG).
 * **Dinámica (X, Y, Z):** Es la amplitud de la fuerza vibratoria generada por el desbalanceo a las RPM nominales.
 * **Carga TOTAL MÁX:** Es la carga máxima que el damper debe soportar estructuralmente ($F_{est} + F_{din, Vertical}$). Útil para verificar la capacidad del catálogo del fabricante.
 * **Margen de Estabilidad:** Es la fuerza neta mínima durante la oscilación ($F_{est} - F_{din, Vertical}$). 
     * **Si es > 0:** El apoyo siempre está en compresión (Seguro).
     * **Si es < 0:** El apoyo intenta levantarse de la base (Vuelo), lo que genera impactos, ruido y desgaste prematuro.
+""")
+
+st.markdown("""
+### 💡 Gráficos
+---
 """)
 
 # --- DEFINICIÓN DE EJES PARA GRÁFICOS (Pegar antes de los bucles for) ---
@@ -381,8 +384,6 @@ colores = {
     eje_horiz_fisico: "tab:blue", 
     eje_axial: "tab:green"
 }
-
-
 
 
 # ==========================
