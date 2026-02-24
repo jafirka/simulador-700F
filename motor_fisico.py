@@ -235,9 +235,9 @@ def ejecutar_barrido_rpm(modelo, rpm_range, d_idx):
         # =========================================================================
 
         # Implementación corregida en el vector F:
-        lx_exc = -cg_global[0]
-        ly_exc = -cg_global[1]
-        lz_exc = dist - cg_global[2]
+        lx_exc = 0#-cg_global[0]
+        ly_exc = 0#-cg_global[1]
+        lz_exc = 0# dist - cg_global[2]
 
         F = np.array([
             F0,                     # Fx (Real)
