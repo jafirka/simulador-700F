@@ -247,8 +247,8 @@ def ejecutar_barrido_rpm(modelo, rpm_range, d_idx):
         lz_exc =  dist - cg_global[2]
 
         F = np.array([
-            1j * F0,                     # Fx (Real)
-            F0,                # Fy (Imaginaria - Giro 90°)
+            F0,                     # Fx (Real)
+            1j * F0,                # Fy (Imaginaria - Giro 90°)
             0,                      # Fz (Nula en desbalanceo radial)
             (1j * F0) * lz_exc,     # Mx = Fy*lz - Fz*ly
             -F0 * lz_exc,           # My = Fz*lx - Fx*lz
@@ -316,8 +316,33 @@ def calcular_tabla_fuerzas(modelo, rpm_obj):
         
         # Como solo enviamos una RPM, los resultados están en el índice [0] de las listas
         f_din_x = D_fuerza["x"][0]
-        f_din_y = D_fuerza["y"][0]
+        #f_din_y = D_fuerza["y"][0]
         f_din_z = D_fuerza["z"][0]
+
+
+    
+        for d in sim.dampers:
+            T = d.get_matriz_T(sim.cg_global)
+            # f_comp es el vector de fuerza complejo (3 componentes: x, y, z)
+            f_comp = d.get_matriz_K() @ T @ f_vibracion
+            
+            # --- NUEVA LÓGICA DE BARRIDO DE FASE ---
+            pasos_giro = np.linspace(0, 2*np.pi, 36) # 36 fotos en un giro de 360°
+            max_f_y_inst = 0
+            
+            for phi in pasos_giro:
+                # Calculamos la componente Y real en el instante phi
+                # La fuerza instantánea es la parte real de (F_compleja * e^jphi)
+                f_inst_y = np.real(f_comp[1] * np.exp(1j * phi))
+                
+                # Guardamos el valor absoluto máximo alcanzado en el ciclo
+                if abs(f_inst_y) > max_f_y_inst:
+                    max_f_y_inst = abs(f_inst_y)
+            
+            # Ahora f_din_y ya no es un simple np.abs(), sino el pico real del ciclo
+            f_din_y = max_f_y_inst
+
+
         
         f_est_y = reacciones_estaticas[i]
         
