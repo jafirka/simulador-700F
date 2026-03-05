@@ -191,7 +191,7 @@ class SimuladorCentrifuga:
 # 2️⃣ LÓGICA DE CÁLCULO
 # ==========================================
 
-def ejecutar_barrido_rpm(modelo, rpm_range, d_idx):
+def ejecutar_barrido_rpm(modelo, rpm_range, d_idx, usar_giroscopico=False):
 
     M, K, C, cg_global = modelo.armar_matrices()
     T_sensor = modelo.obtener_matriz_sensor(cg_global)
