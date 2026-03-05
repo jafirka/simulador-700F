@@ -46,7 +46,15 @@ st.title("Simulador Interactivo de Centrífuga 700F - Departamento de Ingenieria
 st.markdown("Modifica los valores en la barra lateral para ver el impacto en las vibraciones.")
 
 # --- BARRA LATERAL PARA MODIFICAR VALORES ---
+
+# En la sección de configuración de la barra lateral
+st.sidebar.header("⚙️ Configuración de Simulación")
+usar_giroscopico = st.sidebar.checkbox("Incluir Efecto Giroscópico", value=False, help="Activa el acoplamiento entre los ejes Rx y Ry debido a la rotación del cesto.")
+
+
 st.sidebar.header("Parámetros de cálculos")
+
+
 
 
 # Ejemplo de cómo modificar la masa de desbalanceo y RPM
