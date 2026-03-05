@@ -59,7 +59,7 @@ iz_input = st.sidebar.number_input(
     min_value=0.0, 
     step=0.1,
     help="Momento de inercia del cesto sobre su eje de rotación. Influye en la estabilidad giroscópica.",
-    disabled=not usar_giro # Se deshabilita si el efecto no está activo
+    disabled=not usar_giroscopio # Se deshabilita si el efecto no está activo
 )
 
 st.sidebar.header("Parámetros de cálculos")
@@ -273,7 +273,7 @@ f_res_rpm, modos = modelo_base.calcular_frecuencias_naturales()
 # RPM de operación
 rpm_range = np.linspace(10, rpm_obj*1.2, 1000)
 idx_op = np.argmin(np.abs(rpm_range - rpm_obj))
-rpm_range, D_desp, D_fuerza, acel_cg, vel_cg, S_desp, S_vel, S_acel, X_damper = ejecutar_barrido_rpm(modelo_base, rpm_range, d_idx, usar_giroscopio=usar_giro, iz_manual=iz_input)
+rpm_range, D_desp, D_fuerza, acel_cg, vel_cg, S_desp, S_vel, S_acel, X_damper = ejecutar_barrido_rpm(modelo_base, rpm_range, d_idx, usar_giroscopio, iz_manual=iz_input)
 
 
 
