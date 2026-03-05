@@ -155,6 +155,12 @@ class SimuladorCentrifuga:
         if cond_M > 1e12:
             st.warning(f"⚠️ Matriz de Masa mal condicionada (Cond: {cond_M:.2e}).")
 
+        self.Iz_cesto = 0
+        if "cesto" in self.componentes:
+            I_cesto = np.array(self.componentes["cesto"]["I"])
+            # Si definiste I como matriz 3x3, es el elemento [2,2]. Si es lista [Ix, Iy, Iz], es el [2]
+            self.Iz_cesto = I_cesto[2, 2] if I_cesto.ndim == 2 else I_cesto[2]
+
         return M, K, C, cg_global
 
 
@@ -215,12 +221,6 @@ def ejecutar_barrido_rpm(modelo, rpm_range, d_idx):
         F = np.zeros(6, dtype=complex)
             
         arm = ex['distancia_eje'] - cg_global[2]
-        # Fuerzas en X e Y
-        #F[0], F[1] = F0, F0 * 1j
-        # Momentos: My debido a Fx, Mx debido a Fy
-        # Mx = Fy * brazo | My = -Fx * brazo
-        #F[3] = (F0 * 1j) * arm  # Momento en X
-        #F[4] = -F0 * arm        # Momento en Y
 
         # =========================================================================
         # NOTA TÉCNICA SOBRE LA EXCITACIÓN (EJE Z HORIZONTAL)
@@ -255,9 +255,18 @@ def ejecutar_barrido_rpm(modelo, rpm_range, d_idx):
             F0 * ly_exc - (1j * F0) * lx_exc  # Mz = Fx*ly - Fy*lx (Momento Torsional)
         ])
 
+        # --- MATRIZ GIROSCÓPICA G ---
+        G = np.zeros((6, 6))
+        if usar_giroscopico:
+            # Acoplamiento Rx (3) y Ry (4)
+            # El término es Iz * Omega
+            val_g = modelo.Iz_cesto * w
+            G[3, 4] = val_g
+            G[4, 3] = -val_g
 
         # Resolver el sistema: Z * X = F
-        Z = -w**2 * M + 1j*w * C + K
+        #Z = -w**2 * M + 1j*w * C + K
+        Z = -w**2 * M + 1j * w * (C + G) + K
         X = linalg.solve(Z, F)
         # --- CG: aceleración y velocidad ---
         for i, eje in enumerate(["x", "y", "z"]):
