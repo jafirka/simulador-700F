@@ -155,12 +155,6 @@ class SimuladorCentrifuga:
         if cond_M > 1e12:
             st.warning(f"⚠️ Matriz de Masa mal condicionada (Cond: {cond_M:.2e}).")
 
-        self.Iz_cesto = 0
-        if "cesto" in self.componentes:
-            I_cesto = np.array(self.componentes["cesto"]["I"])
-            # Si definiste I como matriz 3x3, es el elemento [2,2]. Si es lista [Ix, Iy, Iz], es el [2]
-            self.Iz_cesto = I_cesto[2, 2] if I_cesto.ndim == 2 else I_cesto[2]
-
         return M, K, C, cg_global
 
 
@@ -191,7 +185,7 @@ class SimuladorCentrifuga:
 # 2️⃣ LÓGICA DE CÁLCULO
 # ==========================================
 
-def ejecutar_barrido_rpm(modelo, rpm_range, d_idx, usar_giroscopico=False):
+def ejecutar_barrido_rpm(modelo, rpm_range, d_idx, usar_giroscopico=False, iz_manual=0.0):
 
     M, K, C, cg_global = modelo.armar_matrices()
     T_sensor = modelo.obtener_matriz_sensor(cg_global)
@@ -260,7 +254,7 @@ def ejecutar_barrido_rpm(modelo, rpm_range, d_idx, usar_giroscopico=False):
         if usar_giroscopico:
             # Acoplamiento Rx (3) y Ry (4)
             # El término es Iz * Omega
-            val_g = modelo.Iz_cesto * w
+            val_g = iz_manual * w
             G[3, 4] = val_g
             G[4, 3] = -val_g
 
