@@ -50,7 +50,7 @@ st.markdown("Modifica los valores en la barra lateral para ver el impacto en las
 
 # En la sección de configuración de la barra lateral
 st.sidebar.header("⚙️ Configuración de Simulación")
-usar_giroscopico = st.sidebar.checkbox("Incluir Efecto Giroscópico", value=False, help="Activa el acoplamiento entre los ejes Rx y Ry debido a la rotación del cesto.")
+usar_giroscopio = st.sidebar.checkbox("Incluir Efecto Giroscópico", value=False, help="Activa el acoplamiento entre los ejes Rx y Ry debido a la rotación del cesto.")
 
 iz_inicial = 1.0
 iz_input = st.sidebar.number_input(
